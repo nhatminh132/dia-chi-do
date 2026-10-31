@@ -109,6 +109,34 @@ không có nền nào. `mobileStrategy: "lower-resolution"` chưa từng đượ
 
 `npx tsc --noEmit`, `npx eslint src`, `npm run build` đều pass (23 route).
 
+## Hướng dẫn viên AI — chỉ phục vụ chính website này
+
+`/api/chat` là proxy giữ khoá nhà cung cấp ở server (OpenAI-compatible: `OPENAI_API_KEY`,
+`OPENAI_BASE_URL`, `OPENAI_MODEL`). Vì route là công khai nên đã thêm ba cổng trong
+`src/app/api/chat/route.ts`:
+
+1. **`sameSite()`** — `Origin` phải trùng `${x-forwarded-proto}://${x-forwarded-host}`
+   (hoặc một origin trong `CHAT_ALLOWED_ORIGINS`) và `Sec-Fetch-Site`, nếu có, phải là
+   `same-origin`. Không có `Origin` ⇒ `403`.
+2. **`overRateLimit()`** — 20 câu / 5 phút / IP (`x-forwarded-for`), `Map` trong bộ nhớ
+   instance (không Redis) ⇒ best-effort, đủ chặn script quét.
+3. **`cleanHistory()`** — 10 lượt, 1.000 ký tự/lượt, 4.000 ký tự tổng, chỉ nhận
+   `role: user | assistant`; lượt cuối phải là `user`.
+
+Đo trên `next start` (provider giả ở cổng 4321):
+
+| Gửi từ | Kết quả |
+|---|---|
+| curl không `Origin` | `403` |
+| `Origin: https://evil.example` | `403` |
+| `Origin` đúng + `Sec-Fetch-Site: cross-site` | `403` |
+| `Origin` đúng + `Sec-Fetch-Site: same-origin` | `200 {"reply":…}` |
+| trình duyệt thật (Chromium) bấm gửi trong khung chat | `200`, bong bóng hiện câu trả lời |
+| 25 request liên tiếp cùng IP | 20 × `200`, rồi 5 × `429`; provider chỉ nhận đúng 20 |
+
+Giới hạn trung thực: kiểm tra header không phải chữ ký mật mã — người cố tình vẫn tự đặt
+được `Origin`. Chốt chặn cuối vẫn là **spend limit của khoá ở phía nhà cung cấp**.
+
 ## Mobile: nền tĩnh tuyệt đối + bỏ auto-scroll
 
 Hai yêu cầu của chủ dự án, làm cùng một lượt.

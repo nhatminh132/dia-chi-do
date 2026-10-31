@@ -346,6 +346,7 @@ mọi nhà cung cấp "OpenAI-compatible" — không cần SDK, không cần th�
 | `OPENAI_API_KEY` | ✅ | — | Khoá của nhà cung cấp. Chỉ đọc ở server |
 | `OPENAI_BASE_URL` | — | `https://api.openai.com/v1` | Gốc API, **không** có `/` cuối |
 | `OPENAI_MODEL` | — | `gpt-4o-mini` | Tên model theo nhà cung cấp |
+| `CHAT_ALLOWED_ORIGINS` | — | — | Origin phụ được phép gọi chat, cách nhau bằng dấu phẩy (mặc định: chính host đang phục vụ) |
 
 Thiếu khoá ⇒ cả site vẫn chạy, chỉ khung chat trả "Chưa cấu hình OPENAI_API_KEY.".
 Mẫu: `.env.example`.
@@ -387,12 +388,38 @@ curl -sS https://<domain>/api/chat \
 | `429` / `insufficient_quota` | Hết hạn mức hoặc hết credit của khoá |
 | Chat trả đúng câu "Chưa cấu hình OPENAI_API_KEY." | Chưa thêm biến, hoặc chưa redeploy sau khi thêm |
 
+### Khoá API chỉ dùng được cho website này
+
+`/api/chat` **không** phải endpoint mở. Mỗi request phải qua ba cổng, theo thứ tự:
+
+1. **Cổng origin** — `Origin` phải trùng host đang phục vụ request (hoặc một origin
+   trong `CHAT_ALLOWED_ORIGINS`), và `Sec-Fetch-Site` (nếu trình duyệt gửi) phải là
+   `same-origin`. Website khác nhúng gọi vào sẽ bị `403`; gọi bằng script/curl cũng
+   `403` vì không có `Origin`.
+2. **Cổng tần suất** — 20 câu / 5 phút / IP, quá thì `429`.
+3. **Cổng kích thước** — tối đa 10 lượt, 1.000 ký tự mỗi lượt, 4.000 ký tự tổng.
+
+```bash
+# Từ website thật: lưu lượng bình thường, không thấy gì.
+# Gọi thẳng bằng curl (không Origin) → 403:
+curl -sS -o /dev/null -w '%{http_code}\n' https://<domain>/api/chat \
+  -H 'content-type: application/json' -d '{"messages":[]}'   # 403
+```
+
+**Giới hạn trung thực:** đây là kiểm tra theo header, không phải chữ ký mật mã. Người cố
+tình vẫn tự đặt được `Origin` giả. Ba lớp trên chặn đúng thứ cần chặn (web khác nhúng,
+script quét bừa), nhưng **bảo đảm cuối cùng vẫn là hạn mức chi tiêu đặt ở phía nhà cung
+cấp** — hãy đặt spend limit cho khoá này, và tạo khoá riêng chỉ cho dự án này.
+
+Muốn siết hơn nữa thì phải có đăng nhập người dùng (mỗi người một phiên) — ngoài phạm vi
+một bảo tàng mở.
+
 ### Giới hạn cần biết
 
-- Route là **công khai**: ai biết URL cũng gọi được. Đặt hạn mức chi tiêu ở phía nhà cung
-  cấp, và chỉ dùng khoá riêng cho site này. Chưa có rate-limit theo IP.
-- `max_tokens: 200` và tối đa 10 lượt hội thoại gần nhất được gửi đi — để hoá đơn không
-  phình theo độ dài cuộc trò chuyện.
+- `max_tokens: 200`; hội thoại gửi đi tối đa 10 lượt / 4.000 ký tự — hoá đơn không phình
+  theo độ dài cuộc trò chuyện.
+- Bộ đếm tần suất nằm trong bộ nhớ từng instance serverless (không Redis): nhiều instance
+  thì hạn mức thực tế có thể cao hơn 20/phút một chút.
 - Lịch sử chat lưu ở `localStorage` của người xem (`chatHistory`), không lưu ở server.
 - System prompt nằm trong `route.ts`; sửa ở đó để đổi giọng điệu/phạm vi trả lời.
 
