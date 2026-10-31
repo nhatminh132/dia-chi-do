@@ -93,6 +93,7 @@ không có nền nào. `mobileStrategy: "lower-resolution"` chưa từng đượ
    dưới `lg`, nhịp B hiện sẵn (`.scene-sequence-copy-journey` opacity 1 dưới 1023px).
 8. Ba thanh fixed ở đáy: `AutoScrollControl` dời sang phải trên điện thoại
    (`justify-end pr-[4.25rem]`), không còn chồng lên capsule nhạc (đo được chồng 14px).
+   *(Sau đó nút này bị bỏ hẳn khỏi mobile — xem mục “Mobile: nền tĩnh…” bên dưới.)*
    `ChatCapsule` chỉ hiện bong bóng mời khi có `(hover: hover) and (pointer: fine)` — trước
    đó trên cảm ứng không có `mousemove` nên đồng hồ idle bật bong bóng **vĩnh viễn**.
 9. `Header.tsx`: trang con luôn có nền đặc, không còn trong suốt ở đầu trang — nhãn `Ch NN`
@@ -107,6 +108,56 @@ không có nền nào. `mobileStrategy: "lower-resolution"` chưa từng đượ
 | chương 02 | 9.069px → 1.080px | không đổi |
 
 `npx tsc --noEmit`, `npx eslint src`, `npm run build` đều pass (23 route).
+
+## Mobile: nền tĩnh tuyệt đối + bỏ auto-scroll
+
+Hai yêu cầu của chủ dự án, làm cùng một lượt.
+
+### 1. Điện thoại không còn dùng ảnh cắt từ clip của bản desktop
+
+Bản trước lấy `poster` (khung hình trích từ chính `.scrub.mp4`) làm nền điện thoại. Đó là
+một khung hình video đóng băng — lệch hẳn với tông nền tĩnh của phần còn lại, và người xem
+màn nhỏ đang nhìn một video họ không bao giờ được xem. Nay nền của điện thoại là
+**`SceneBackdrop`** — phông gradient dựng bằng CSS, không tệp, không request (7 cảnh đã có
+sẵn phông riêng từ trước).
+
+- `SceneMedia.tsx` + `SceneSequenceMedia.tsx`: thẻ `<img>` poster mang thêm `hidden md:block`.
+  `loading="lazy"` + `display: none` ⇒ máy nhỏ không tải byte ảnh nào. Ẩn bằng CSS (không
+  bằng `useIsMobile`) để HTML máy chủ và bản hydrate giống hệt nhau — không nháy ảnh.
+- `Hero.tsx`: lá cờ SVG đứng giữa khung từng cắt ngang tiêu đề và nút bấm trên điện thoại
+  (nó chỉ hiện khi cảnh 01 không có clip). Nay có clip ⇒ lá cờ **không hiện ở khung nhìn
+  nào**; thay vào đó hero dựng `SceneBackdrop sceneId="scene-01-flag"` dưới `md` làm nền tĩnh.
+- `ChapterFrame.tsx`: lớp nền gradient đổi `opacity-70` → `max-md:opacity-100`, vì trên
+  điện thoại nó **là** nền chứ không còn là lớp phụ dưới video.
+
+Đo lại (dev 390×844, Chromium cảm ứng): request tới `/video/` = **0**, `/images/scenes/` =
+**0**; `<img>` poster có trong DOM nhưng rộng 0px. Desktop 1440×900 không đổi: video phát,
+poster vẫn tải và vẫn hiện.
+
+### 2. Auto-scroll bị bỏ khỏi bản mobile
+
+Máy cầm tay không có con lăn để "nhường lái", và nút tự cuộn chỉ tranh chỗ ở đáy màn hình.
+
+- `useMediaQuery.ts`: thêm `useIsHandheld()` = `(pointer: coarse), (max-width: 767px)` —
+  một media query gộp cả điện thoại dọc (bề rộng) lẫn điện thoại nằm ngang / máy tính bảng
+  (con trỏ thô).
+- `AutoScrollControl.tsx`: tách thành `AutoScrollControl` (chỉ quyết định) + `AutoScrollCapsule`
+  (phần giao diện cũ). Trên máy cầm tay nó trả `null` ⇒ không dựng nút, không chạy vòng rAF,
+  không nghe sự kiện. Lớp ngoài còn mang `max-md:hidden pointer-coarse:hidden` để capsule
+  trong HTML máy chủ không kịp lóe lên trước lúc hydrate.
+- Dọn theo: bỏ `useSyncExternalStore`/`playerOpen`/`lifted` (khối nâng capsule lên trên
+  player mở rộng) — nhánh đó không còn khung nhìn nào chạm tới. Bỏ `pointer-coarse:opacity-100`
+  bên trong capsule.
+
+Kiểm chứng: cửa sổ 390×844 cảm ứng ⇒ `[data-autoscroll-ui]` **không có trong DOM**; 1440×900
+⇒ capsule vẫn ở đáy giữa, vẫn chạy 1×.
+
+`npx tsc --noEmit`, `npx eslint src` sạch; `npm run build` pass (23 route).
+
+> Ghi nhận có sẵn, KHÔNG sửa trong phiên này: tiêu đề `--text-h1` với `leading-[1.04]` bị
+> dấu tiếng Việt của dòng trên chạm dòng dưới ở màn 390px (thấy cả trước khi đổi nền —
+> ảnh `.tmp/walk-02.png`). Muốn sửa thì phải làm ở `Heading`/`--text-h1`, cần đo lại toàn bộ
+> tiêu đề chương.
 
 ## Giới hạn tốc độ cuộn + thanh neo chương
 

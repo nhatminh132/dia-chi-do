@@ -15,8 +15,9 @@ const SEEK_EPSILON = 0.008;
  *
  * Điện thoại KHÔNG nhận chuỗi video này. Ba clip `preload="auto"` cộng một
  * ScrollTrigger pin dài hơn 8.000px là quá nặng cho máy nhỏ, trong khi màn
- * 390px chỉ đọc được một khung hình tại một thời điểm. Thay vào đó: MỘT ảnh
- * tĩnh, không pin, không tải byte video nào.
+ * 390px chỉ đọc được một khung hình tại một thời điểm. Thay vào đó: KHÔNG
+ * video, KHÔNG ảnh cắt từ clip — chỉ nền tĩnh `SceneBackdrop` của chương
+ * (gradient CSS) và phần biên tập xếp dọc. Không tải byte video/ảnh nào.
  *
  * `!hydrated` đi cùng nhánh tĩnh: lần render đầu chưa biết bề rộng thật.
  */
@@ -185,13 +186,17 @@ export function SceneSequenceMedia({
       aria-hidden="true"
       className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)}
     >
+      {/* Màn hình hẹp KHÔNG dùng ảnh này: nó là khung hình cắt từ clip của bản
+          desktop. Nền của điện thoại là `SceneBackdrop` của chương. Ẩn bằng
+          CSS để máy nhỏ không tải byte ảnh nào (`loading="lazy"` + `display:
+          none`), và để HTML máy chủ không khác bản hydrate. */}
       {poster ? (
         // Ảnh tĩnh trang trí, không đi qua bộ tối ưu ảnh của Next.
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={poster}
           alt=""
-          className="absolute inset-0 size-full object-cover"
+          className="absolute inset-0 hidden size-full object-cover md:block"
           loading="lazy"
           decoding="async"
         />

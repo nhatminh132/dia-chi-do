@@ -96,10 +96,10 @@ export function Hero() {
   const scene = getScene("scene-01-flag");
   const hasVideo = scene ? hasSceneVideo(scene) : false;
 
-  /* Màn hình hẹp: cảnh 01 là `poster-only`, nên `SceneMedia` dựng ảnh tĩnh và
-     KHÔNG tạo thẻ `<video>` nào. Toàn bộ máy trạng thái dưới đây chỉ được
-     chờ video khi thật sự có video — nếu không, lớp chờ `fixed` sẽ treo mãi
-     trên điện thoại.
+  /* Màn hình hẹp: cảnh 01 KHÔNG phát video và cũng KHÔNG dùng ảnh cắt từ
+     clip của bản desktop — nền là lá cờ SVG + gradient tối. Toàn bộ máy
+     trạng thái dưới đây chỉ được chờ video khi thật sự có video; nếu không,
+     lớp chờ `fixed` sẽ treo mãi trên điện thoại.
 
      Không dùng `useHydrated` ở đây: lúc hydrate `isMobile` còn `false`, nên
      lần chạy đầu đi đúng nhánh "có video" (dọn inline style, gắn cờ sẵn
@@ -584,6 +584,15 @@ export function Hero() {
         }}
       />
 
+      {/* ══ NỀN TĨNH CỦA MÀN HÌNH HẸP ══════════════════════════════════════
+          Điện thoại không phát clip cảnh 01 và cũng KHÔNG dùng khung hình cắt
+          từ clip đó. Nền là gradient dựng sẵn của chính cảnh 01 — sân khấu tối
+          có quầng đỏ dưới chân, cùng tông với các chương sau. Không tệp, không
+          request. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 md:hidden">
+        <SceneBackdrop sceneId="scene-01-flag" />
+      </div>
+
       {/* ══ PHASE 4 — KHÍ QUYỘN THÀNH PHỐ (lộ ra khi cuộn) ═══════════════ */}
       <div
         ref={cityRef}
@@ -734,8 +743,18 @@ export function Hero() {
       >
         {hasVideo && scene ? (
           <SceneMedia scene={scene} scrollScrub allowOnMobile />
-        ) : (
-          <div className="absolute inset-0 grid place-items-center">
+        ) : null}
+
+        {/* Lá cờ SVG — chỉ dùng khi cảnh 01 KHÔNG có clip nào.
+            Có clip thì trên màn rộng video đã phủ lên; trên điện thoại, nền
+            là gradient tĩnh ở trên, nên lá cờ đứng giữa khung sẽ cắt ngang
+            tiêu đề và nút bấm. Vì vậy khi đã có clip, lá cờ không hiện ở
+            khung nhìn nào. */}
+        <div
+          className={
+            hasVideo ? "hidden" : "absolute inset-0 grid place-items-center"
+          }
+        >
             <div
               ref={flagObjectRef}
               className="relative h-[44vh] max-h-[440px] min-h-[220px] w-auto aspect-[2/3] overflow-hidden"
@@ -768,7 +787,6 @@ export function Hero() {
               />
             </div>
           </div>
-        )}
       </div>
 
       {/* ══ BỎ QUA MỞ ĐẦU ═════════════════════════════════════════════════

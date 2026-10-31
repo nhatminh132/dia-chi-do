@@ -69,6 +69,20 @@ export function useIsMobile(): boolean {
 }
 
 /**
+ * Thiết bị cầm tay — điện thoại, máy tính bảng, hoặc cửa sổ hẹp.
+ *
+ * Gộp hai tín hiệu trong MỘT media query:
+ *   • `max-width: 767px` — điện thoại dọc, và mọi cửa sổ hẹp trên desktop;
+ *   • `pointer: coarse`  — điện thoại nằm ngang và máy tính bảng, nơi bề
+ *     rộng vượt 767px nhưng người dùng vẫn chỉ có ngón tay.
+ *
+ * Dùng cho các tính năng chỉ có nghĩa với chuột (ví dụ tự động cuộn).
+ */
+export function useIsHandheld(): boolean {
+  return useMediaQuery("(pointer: coarse), (max-width: 767px)");
+}
+
+/**
  * Đã hydrate hay chưa.
  *
  * Cần để render khác nhau trên server và client — ví dụ không mount Lenis

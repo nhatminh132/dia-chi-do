@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AUTO_SCROLL_SPEEDS,
   type AutoScrollSpeed,
 } from "@/lib/scroll/scrollBudget";
 import { useAutoScroll } from "@/lib/scroll/useAutoScroll";
+import { useIsHandheld } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 
 /**
@@ -28,46 +29,39 @@ import { cn } from "@/lib/utils";
  * ── Tự ẩn ─────────────────────────────────────────────────────────────────
  *
  * Ẩn sau 6 giây không có chuyển động chuột — trừ khi đang tự cuộn (cần nút
- * pause) hoặc đang mở bảng tốc độ (đang thao tác). Trên `pointer: coarse`
- * luôn hiện vì không có "rê chuột" để gọi nó trở lại.
+ * pause) hoặc đang mở bảng tốc độ (đang thao tác). Chỉ chạy trên thiết bị
+ * có chuột: máy cầm tay không dựng capsule này (xem mục dưới).
  *
  * ── Chỉ tồn tại ở Part 01–02 ──────────────────────────────────────────────
  *
  * Chế độ tự cuộn phục vụ phần mở đầu của trang chủ. Từ đầu Part 03 trở đi
  * capsule ẩn hẳn (không chỉ mờ) và `start()` từ chối chạy — phần sau là nơi
  * đọc và tương tác, một nút "tự cuộn" ở đó chỉ gây nhầm lẫn.
+ *
+ * ── KHÔNG có ở bản mobile ─────────────────────────────────────────────────
+ *
+ * Máy cầm tay không có con lăn để "nhường lái": người xem đang cầm ngón tay
+ * trên chính nội dung, nên một nút tự cuộn chỉ tranh chỗ ở đáy màn hình và
+ * cướp quyền cuộn của họ. Trên thiết bị đó component trả về `null` — không
+ * dựng nút, không gắn vòng rAF, không nghe sự kiện.
+ *
+ * `useIsHandheld()` (bề rộng < 768px HOẶC `pointer: coarse`) quyết định điều
+ * này. HTML máy chủ vẫn có capsule (server không biết bề rộng), nên lớp
+ * ngoài cùng còn mang `max-md:hidden pointer-coarse:hidden` để nút không
+ * kịp lóe lên trước lúc hydrate.
  */
 export function AutoScrollControl() {
+  const handheld = useIsHandheld();
+  if (handheld) return null;
+  return <AutoScrollCapsule />;
+}
+
+function AutoScrollCapsule() {
   const { active, toggle, speed, setSpeed, inZone } = useAutoScroll();
   const [open, setOpen] = useState(false);
   /* Ngoài vùng auto-scroll thì ẩn hẳn, kể cả khi đang chạy: `useAutoScroll`
      đã tự dừng ở mốc cảnh 03 nên không có phiên nào bị bỏ quên. */
   const hidden = useIdleFade(active || open) || !inZone;
-
-  /* Trên màn hình hẹp, player mở rộng sẽ phủ lên capsule giữa đáy.
-     Player phát một sự kiện; ở đây nâng capsule lên trên nó. */
-  const [playerOpen, setPlayerOpen] = useState(false);
-  const narrow = useSyncExternalStore(
-    (onChange) => {
-      const mq = window.matchMedia("(max-width: 639px)");
-      mq.addEventListener("change", onChange);
-      return () => mq.removeEventListener("change", onChange);
-    },
-    () => window.matchMedia("(max-width: 639px)").matches,
-    () => false,
-  );
-
-  useEffect(() => {
-    const onPlayer = (event: Event) => {
-      setPlayerOpen(Boolean((event as CustomEvent<boolean>).detail));
-    };
-    window.addEventListener("dia-chi-do:player-expanded", onPlayer);
-    return () => {
-      window.removeEventListener("dia-chi-do:player-expanded", onPlayer);
-    };
-  }, []);
-
-  const lifted = narrow && (playerOpen || open);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const gearRef = useRef<HTMLButtonElement>(null);
@@ -99,8 +93,11 @@ export function AutoScrollControl() {
     <div
       className={cn(
         "pointer-events-none fixed inset-x-0 z-40 flex justify-end pb-3 pr-[4.25rem] sm:justify-center sm:pb-4 sm:pr-0",
-        "transition-[bottom] duration-500 ease-cinematic",
-        lifted ? "bottom-44" : "bottom-0",
+        /* Chưa hydrate xong thì server đã render sẵn capsule; hai lớp này ẩn
+           nó ngay trên máy cầm tay, trước cả khi `AutoScrollControl` kịp trả
+           về `null`. */
+        "max-md:hidden pointer-coarse:hidden",
+        "bottom-0",
       )}
     >
       <div
@@ -110,12 +107,10 @@ export function AutoScrollControl() {
           "flex items-center gap-0.5 rounded-full border p-0.5",
           "bg-ink-950/88 backdrop-blur-xl",
           "transition-[opacity,border-color,transform,visibility] duration-500 ease-cinematic",
-          "pointer-coarse:opacity-100",
           hidden
             ? "pointer-events-none translate-y-1 opacity-0"
             : "pointer-events-auto opacity-90 hover:opacity-100",
-          /* Ra khỏi Part 01–02 thì biến mất thật, kể cả trên thiết bị cảm ứng
-             (nơi `pointer-coarse:opacity-100` cố ý giữ capsule luôn hiện). */
+          /* Ra khỏi Part 01–02 thì biến mất thật (không chỉ mờ). */
           !inZone && "invisible",
           active ? "border-flag-red/80" : "border-line-strong",
         )}

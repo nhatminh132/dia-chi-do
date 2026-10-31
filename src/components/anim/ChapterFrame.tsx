@@ -185,7 +185,10 @@ export function ChapterFrame({
             </ParallaxBackdrop>
           ) : null}
 
-          <ParallaxBackdrop strength={34} depth className="z-0 opacity-70">
+          {/* Màn hình hẹp không có video và không dùng ảnh cắt từ clip, nên
+              lớp gradient này chính là nền của chương: cho hiện đủ độ đậm
+              thay vì 70% như bản desktop (nơi video đã phủ lên trên). */}
+          <ParallaxBackdrop strength={34} depth className="z-0 opacity-70 max-md:opacity-100">
             {scene ? (
               <SceneBackdrop sceneId={scene.id} />
             ) : (

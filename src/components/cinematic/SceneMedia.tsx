@@ -39,7 +39,9 @@ import { cn } from "@/lib/utils";
  *     để lại khung đen.
  *
  *  7. Người dùng bật giảm chuyển động (hoặc màn hình hẹp với chiến lược
- *     `poster-only`) ⇒ KHÔNG tạo video, chỉ hiện poster/lớp nền tĩnh.
+ *     `poster-only`) ⇒ KHÔNG tạo video. Màn hẹp còn KHÔNG dùng ảnh poster
+ *     nữa: nền của điện thoại là gradient `SceneBackdrop`, không phải một
+ *     khung hình cắt từ clip của bản desktop.
  *
  *  ── Về `poster` rỗng ─────────────────────────────────────────────────────
  *
@@ -188,9 +190,19 @@ export function SceneMedia({
       aria-hidden="true"
       className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)}
     >
-      {/* Ảnh tĩnh luôn nằm DƯỚI thẻ video: đây là nền của điện thoại, và là
-          lớp chờ của desktop trước khi khung hình đầu tiên sẵn sàng. Nhờ nó,
-          máy nhỏ không cần `<video>` có `src` mà vẫn có nền.
+      {/* Ảnh tĩnh luôn nằm DƯỚI thẻ video: đây là lớp chờ của desktop trước
+          khi khung hình đầu tiên sẵn sàng.
+
+          ── Vì sao ảnh này CHỈ có ở màn hình rộng ─────────────────────────
+          `poster` là một khung hình CẮT RA TỪ CHÍNH clip của bản desktop.
+          Điện thoại không phát clip nào, nên nếu đem khung hình đó làm nền
+          thì người xem đang nhìn một tấm ảnh tĩnh của một video họ không
+          bao giờ được xem — và nó lệch hẳn với tông nền tĩnh của cả trang.
+
+          Nền của điện thoại là `SceneBackdrop` (gradient dựng bằng CSS, không
+          tệp, không request). Vì vậy ảnh poster bị ẩn dưới `md` bằng CSS:
+          `loading="lazy"` + `display: none` ⇒ trình duyệt không tải byte ảnh
+          nào trên máy nhỏ, và HTML máy chủ vẫn giống hệt bản hydrate.
 
           KHÔNG ghi lại `scene.poster` vào thuộc tính `poster` của thẻ video:
           làm vậy ảnh bị tải hai lần (một lần cho `<img>`, một lần cho thẻ). */}
@@ -200,7 +212,7 @@ export function SceneMedia({
         <img
           src={scene.poster}
           alt=""
-          className="absolute inset-0 size-full object-cover"
+          className="absolute inset-0 hidden size-full object-cover md:block"
           loading="lazy"
           decoding="async"
         />
