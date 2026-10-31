@@ -47,6 +47,7 @@ npm run start         # chạy bản build production
 | [GSAP](https://gsap.com) + ScrollTrigger | 3.15.0 | Chuyển động theo cuộn, pin, scrub, parallax |
 | [Lenis](https://lenis.darkroom.engineering) | 1.3.27 | Cuộn mượt, đồng bộ với GSAP ticker |
 | [Leaflet](https://leafletjs.com) + react-leaflet | 1.9.4 / 5.0.0 | Bản đồ OpenStreetMap *(đưa vào ở phase sau)* |
+| [openai](https://github.com/openai/openai-node) | 7.x | Client cho `/api/chat` — dùng `baseURL` nên hợp mọi router OpenAI-compatible |
 
 > **Không** dùng Locomotive Scroll. **Không** dùng thêm thư viện animation
 > song song — GSAP là engine duy nhất, CSS lo phần hover/focus đơn giản.
@@ -336,8 +337,18 @@ phá vỡ Next.js 16.
 ## Hướng dẫn viên AI (khung chat góc phải)
 
 Giao diện: `src/components/chat/ChatCapsule.tsx`. Máy chủ: `src/app/api/chat/route.ts`.
-Route này nói **đúng giao thức OpenAI** (`POST {base}/chat/completions`), nên dùng được với
-mọi nhà cung cấp "OpenAI-compatible" — không cần SDK, không cần thêm gói npm.
+
+Route gọi **SDK chính thức `openai`**, trỏ tới baseURL khai trong `.env` — nên chạy được với
+mọi **router** nói giao thức OpenAI (OpenAI, OpenRouter, Groq, DeepSeek, Gemini, gateway nội
+bộ…). Không tự dựng URL, không tự viết lại logic thử lại/timeout: `baseURL` → SDK tự nối
+`/chat/completions`, tự cắt `/` thừa, tự đổi lỗi của router thành `APIError` có `status`.
+
+```ts
+const client = new OpenAI({ apiKey, baseURL, timeout: 25_000, maxRetries: 1 });
+const completion = await client.chat.completions.create({ model, messages, max_tokens: 200, temperature: 0.4 });
+```
+
+Muốn đổi router: chỉ sửa `OPENAI_BASE_URL` + `OPENAI_MODEL`. Không sửa code.
 
 ### Ba biến môi trường
 

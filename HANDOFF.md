@@ -111,9 +111,18 @@ không có nền nào. `mobileStrategy: "lower-resolution"` chưa từng đượ
 
 ## Hướng dẫn viên AI — chỉ phục vụ chính website này
 
-`/api/chat` là proxy giữ khoá nhà cung cấp ở server (OpenAI-compatible: `OPENAI_API_KEY`,
-`OPENAI_BASE_URL`, `OPENAI_MODEL`). Vì route là công khai nên đã thêm ba cổng trong
-`src/app/api/chat/route.ts`:
+`/api/chat` **gọi router qua SDK `openai`** (không tự dựng request HTTP nữa):
+
+```ts
+const client = new OpenAI({ apiKey, ...(baseURL ? { baseURL } : {}), timeout: 25_000, maxRetries: 1 });
+const completion = await client.chat.completions.create({ model, messages, max_tokens: 200, temperature: 0.4 });
+```
+
+`OPENAI_BASE_URL` là gốc API của router (`OPENAI_API_KEY`, `OPENAI_MODEL` đi kèm). SDK tự nối
+`/chat/completions`, tự cắt `/` thừa, tự thử lại và đổi lỗi router thành `APIError` có `status`.
+Đổi router ⇒ chỉ đổi env, không đổi code.
+
+Vì route là công khai nên vẫn giữ ba cổng trong `src/app/api/chat/route.ts`:
 
 1. **`sameSite()`** — `Origin` phải trùng `${x-forwarded-proto}://${x-forwarded-host}`
    (hoặc một origin trong `CHAT_ALLOWED_ORIGINS`) và `Sec-Fetch-Site`, nếu có, phải là
@@ -133,6 +142,7 @@ không có nền nào. `mobileStrategy: "lower-resolution"` chưa từng đượ
 | `Origin` đúng + `Sec-Fetch-Site: same-origin` | `200 {"reply":…}` |
 | trình duyệt thật (Chromium) bấm gửi trong khung chat | `200`, bong bóng hiện câu trả lời |
 | 25 request liên tiếp cùng IP | 20 × `200`, rồi 5 × `429`; provider chỉ nhận đúng 20 |
+| model sai (`bad-model`) | `{"error":"401 Incorrect API key provided."}`, HTTP `401` (mã lỗi lấy từ `APIError.status`) |
 
 Giới hạn trung thực: kiểm tra header không phải chữ ký mật mã — người cố tình vẫn tự đặt
 được `Origin`. Chốt chặn cuối vẫn là **spend limit của khoá ở phía nhà cung cấp**.
