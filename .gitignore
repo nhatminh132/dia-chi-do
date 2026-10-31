@@ -23,12 +23,18 @@
 # misc
 .DS_Store
 *.pem
+.tmp/
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+# log chạy thử khi kiểm tra cục bộ
+*.log
+*.err
+audit-rg.txt
 
 # env files (can opt-in for committing if needed)
 .env*

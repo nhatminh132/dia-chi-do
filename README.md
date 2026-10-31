@@ -1,36 +1,358 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ĐỊA CHỈ ĐỎ
 
-## Getting Started
+> **Khát vọng độc lập cho thành phố**
+> Không gian triển lãm lịch sử trực tuyến về hành trình đấu tranh giành độc
+> lập của Sài Gòn trong dòng chảy phong trào giải phóng dân tộc Đông Nam Á.
 
-First, run the development server:
+Dự án học tập — xây dựng bảo tàng số về các địa điểm gắn với Đảng Cộng sản
+Việt Nam và quá trình đấu tranh cách mạng tại Sài Gòn.
+
+---
+
+## Yêu cầu môi trường
+
+| Thành phần | Phiên bản |
+|---|---|
+| Node.js | **≥ 20.9.0** (khuyến nghị 22.x) |
+| npm | ≥ 10 |
+
+## Cài đặt và chạy
 
 ```bash
+# 1) cài phụ thuộc
+npm install
+
+# 2) chạy môi trường phát triển
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Mở <http://localhost:3000>.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# kiểm tra chất lượng trước khi commit
+npm run lint          # ESLint (React Compiler rules)
+npx tsc --noEmit      # kiểm tra kiểu
+npm run build         # build production (Turbopack)
+npm run start         # chạy bản build production
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Công nghệ
 
-## Learn More
+| Thư viện | Phiên bản | Vai trò |
+|---|---|---|
+| [Next.js](https://nextjs.org) | 16.4.2 | App Router, SSR/SSG, metadata, routing file-based |
+| React | 19.3.0 | UI runtime |
+| TypeScript | ~5.9.3 | *(đã pin — xem "Ghi chú kỹ thuật")* |
+| Tailwind CSS | 4.x | CSS-first: token khai trong `@theme`, không có `tailwind.config.js` |
+| [GSAP](https://gsap.com) + ScrollTrigger | 3.15.0 | Chuyển động theo cuộn, pin, scrub, parallax |
+| [Lenis](https://lenis.darkroom.engineering) | 1.3.27 | Cuộn mượt, đồng bộ với GSAP ticker |
+| [Leaflet](https://leafletjs.com) + react-leaflet | 1.9.4 / 5.0.0 | Bản đồ OpenStreetMap *(đưa vào ở phase sau)* |
 
-To learn more about Next.js, take a look at the following resources:
+> **Không** dùng Locomotive Scroll. **Không** dùng thêm thư viện animation
+> song song — GSAP là engine duy nhất, CSS lo phần hover/focus đơn giản.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Cấu trúc thư mục
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+├── app/                     # Route (Next.js App Router)
+│   ├── layout.tsx           # Font, metadata, Header/Footer, ScrollProvider
+│   ├── globals.css          # @theme tokens + base layer + override Leaflet
+│   ├── page.tsx             # Trang chủ (tạm ở Phase 1)
+│   ├── loading.tsx          # Trạng thái chờ
+│   ├── error.tsx            # Bắt lỗi cấp route
+│   └── not-found.tsx        # 404
+│
+├── data/                    # ★ NỘI DUNG — sửa ở đây, không sửa UI
+│   └── types.ts             # Kiểu dữ liệu + quy ước kiểm chứng nội dung
+│
+├── lib/
+│   ├── navigation.ts        # Menu, tagline, hằng số thương hiệu
+│   ├── content-status.ts    # ★ CỔNG KIỂM DUYỆT nội dung
+│   ├── utils.ts             # cn, normalizeText, matchesKeywords
+│   └── gsap/
+│       ├── gsap.ts          # Đăng ký plugin (import duy nhất)
+│       ├── ScrollProvider.tsx  # ★ Lenis + GSAP ticker
+│       └── motionPresets.ts    # 5 chuyển động dùng chung
+│
+├── hooks/
+│   └── useMediaQuery.ts     # useMediaQuery, usePrefersReducedMotion, useIsMobile, useHydrated
+│
+└── components/
+    ├── ui/                  # Container, SectionLabel, Heading, Button, Card,
+    │                        # Badge, StatusBadge, Prose, EmptyState, Skeleton
+    ├── media/               # ★ ArchiveImage, CinematicPlate
+    └── layout/              # Header, MobileNav, Footer, FilmGrain
+```
 
-## Deploy on Vercel
+## Thêm nội dung mới
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Sửa hoặc tạo file trong `src/data/`, không đụng giao diện.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Thêm một địa điểm
+
+```ts
+// src/data/sites.ts
+import type { Site } from "./types";
+
+export const sites: Site[] = [
+  {
+    id: "site-001",
+    slug: "ben-nha-rong",        // URL: /ho-so/ben-nha-rong
+    name: "Bến Nhà Rồng",
+    nameEn: "Nha Rong Wharf",
+    address: undefined,           // ← để trống cho tới khi xác minh
+    coordinates: undefined,      // ← để trống cho tới khi xác minh
+    period: "truoc-1930",
+    category: "di-tich-lich-su",
+    topics: ["hanh-trinh-tim-duong-cuu-nuoc"],
+    summary: "…",                 // 20–45 từ
+    historicalContext: "…",
+    historicalSignificance: "…",
+    images: [],
+    sources: [],
+    relatedSiteSlugs: [],
+    relatedEventIds: [],
+    status: "needs_review",       // ← bắt buộc khi chưa kiểm chứng
+  },
+];
+```
+
+### Thêm ảnh thật
+
+Đặt file vào `public/images/…`, rồi điền metadata trong `ArchiveItem`:
+
+```ts
+{
+  id: "img-001",
+  title: "Bến Nhà Rồng, Sài Gòn, 1911",
+  description: "…",
+  mediaType: "image",
+  src: "/images/sites/ben-nha-rong-1911.jpg",  // ← thêm dòng này là đủ
+  alt: "Bến Nhà Rồng về đêm, nền trời tối",
+  caption: "Bến Nhà Rồng năm 1911",
+  credit: "Tên cơ quan lưu trữ",               // ← bắt buộc ghi nguồn
+  license: "Public domain",                     // ← bắt buộc ghi giấy phép
+  width: 1600,
+  height: 1067,
+  status: "verified",
+}
+```
+
+`ArchiveImage` tự hiển thị ảnh khi có `src`, tự chuyển sang placeholder
+khi thiếu. **Không cần sửa bất kỳ component nào.**
+
+---
+
+## 🎬 HISTORY WEB V2 — lớp cinematic
+
+Trang chủ được nâng cấp thành **bảy cảnh cinematic** với ba lớp tách bạch:
+khí quyển (video) · tư liệu (ảnh lịch sử) · giao diện (HTML).
+
+### Bảy cảnh
+
+| # | Anchor | Cảnh | Clip | Thời lượng đích |
+|---|---|---|---|---:|
+| 01 | `chapter-01` | Cờ đỏ | `scene-01-flag` | 6s |
+| 02 | `chapter-02` | Thành phố và ký ức | `scene-02-city` | 8s |
+| 03 | `chapter-03` | Mở kho lưu trữ | `scene-03-archive` | 6s |
+| 04 | `chapter-04` | Dấu vết kháng chiến | `scene-04-resistance` | 8s |
+| 05 | `chapter-05` | Bản đồ ký ức | `scene-05-map-transition` | 4s |
+| 06 | `chapter-06` | Đông Nam Á | `scene-06-southeast-asia` | 6s |
+| 07 | `chapter-07` | Ký ức vẫn còn đây | `scene-07-finale` | 6s |
+
+**Tổng 44 giây** — đây là TỔNG của bảy clip nằm rải rác ở bảy cảnh, KHÔNG
+phải một đoạn mở đầu 44 giây. Không có màn hình chờ nào giữ người xem lại.
+
+### Manifest video
+
+`src/data/scenes.ts` — bảy mục, đúng ID/thời lượng ở trên.
+
+**Hiện tại cả bảy `src` đều rỗng** (`""`) và `status: "missing"`.
+
+Lý do: khi rà soát kho của dự án, **không có tệp video nào** — `public/` chỉ
+có `audio/ambient-hall.wav` và hai thư mục ảnh rỗng. Clip lá cờ mà chủ dự án
+từng tạo cũng không còn trong kho. Vì vậy **không đoán tên tệp và không dùng
+video mẫu bừa**.
+
+Cách thêm tệp: xem `public/video/README.md`. Sửa `src` + `poster` + `status`
+trong `src/data/scenes.ts` là xong — **không cần sửa component nào**.
+
+Bảo đảm cứng của lớp media:
+
+- `src` rỗng ⇒ **không render thẻ `<video>` nào** ⇒ không có request nào
+  cho URL rỗng ⇒ không có 404, không có biểu tượn video hỏng.
+- Clip chỉ được tạo khi cảnh sắp vào khung hình (`IntersectionObserver`).
+- Video ra khỏi khung hình thì bị `pause()`.
+- `muted` + `playsInline` luôn luôn; `preload="none"`.
+- Lỗi phát video ⇒ tự quay về lớp nền tĩnh, không có ô đen trống.
+
+### Ba khoảnh khắc chính (WOW)
+
+1. **Vải quét sang, lộ tiêu đề** (cảnh 01) — lá cờ trải xuống, tiêu đề dâng
+   lên, rồi cả dải cờ trôi lên ra khỏi khung khi cuộn sang cảnh 02.
+2. **Mở tấm lưu trữ** (cảnh 03) — ảnh lưu trữ trồi lên, chú thích hiện, nhãn
+   nguồn hiện và bấm được, tấm trước lùi sang để lộ tấm sau.
+3. **Bản đồ hình thức → bản đồ thật** (cảnh 05) — vệt mực đỏ loang, bên dưới
+   lộ ra bản đồ Google thật với toạ độ thật từ `getPublicSites()`.
+
+### Quy tắc ba lớp
+
+| Lớp | Chứa | Quy tắc |
+|---|---|---|
+| A — khí quyển | video, gradient, SVG | KHÔNG chứa chữ, tài liệu hay trích dẫn. Không phải ảnh tư liệu. |
+| B — tư liệu | ảnh lịch sử + chú thích + nguồn | Nguồn phải là liên kết thật. Không ảnh AI thay ảnh lịch sử. |
+| C — giao diện | tiêu đề, mốc, bản đồ, điều hướng | Luôn đọc được kể cả khi mọi video hỏng. |
+
+### Giảm chuyển động
+
+`src/lib/gsap/sceneMotion.ts` — cổng `useSceneMotion()` = cờ của dự án **VÀ**
+cờ `prefers-reduced-motion` của hệ điều hành.
+
+Khi bật giảm chuyển động: không video tự phát, không ghim, không scrub, không
+vệt mực loang; mọi nội dung hiện sẵn; dòng thời gian xếp dọc.
+
+> Cờ toàn site của dự án (`src/lib/gsap/motionPreference.tsx`) **giữ nguyên**
+> — dự án cố ý bật chuyển động bất kể cài đặt hệ thống. Cổng
+> `useSceneMotion()` chỉ áp cho lớp cinematic mới, không đảo ngược quyết
+> định cũ.
+
+### File quan trọng của lớp V2
+
+```
+src/
+├── data/
+│   └── scenes.ts              # ★ MANIFEST video bảy cảnh
+├── lib/
+│   ├── scenes.ts               # Bộ chọn cảnh (getScene, hasSceneVideo, …)
+│   └── gsap/
+│       ├── sceneMotion.ts      # ★ Cổng giảm chuyển động của lớp cinematic
+│       └── sceneTransitions.ts # ★ Đặc tả chuyển cảnh từng cảnh
+└── components/
+    └── cinematic/              # ★ Lớp cinematic
+        ├── SceneMedia.tsx      # Lớp A — video (lazy, pause, fallback)
+        ├── SceneBackdrop.tsx   # Lớp A — nền tĩnh dựng bằng CSS
+        ├── VietnamFlag.tsx     # Quốc kỳ vẽ bằng SVG (hình học chuẩn)
+        ├── ArchivalLayer.tsx   # Lớp B — ảnh + chú thích + nguồn
+        ├── ArchivalReveal.tsx  # WOW #2 — vò tấm lưu trữ
+        ├── MapReveal.tsx       # WOW #3 — vệt mực → bản đồ thật
+        ├── ChapterRail.tsx     # Chỉ báo chương
+        └── ...
+```
+
+---
+
+## ⛔ Quy tắc kiểm chứng nội dung
+
+Đây là ràng buộc nghiêm ngặt nhất của dự án. Không phá vỡ.
+
+### 1. Không bịa
+
+Không tự chế sự kiện, ngày tháng, nhân vật, địa chỉ hay nguồn tham khảo.
+Nếu chưa kiểm chứt được thì **đánh dấu**, đừng khẳng định.
+
+### 2. Trạng thái nội dung
+
+| Trạng thái | Hiển thị công khai |
+|---|---|
+| `verified` | Đầy đủ, kèm nguồn |
+| `needs_review` | Có badge "CẦN KIỂM CHỨNG"; **ẩn địa chỉ và tọa độ** |
+| `draft` | Không hiển thị |
+| `unpublished` | Không hiển thị; `ArchiveImage` render placeholder |
+
+### 3. Tọa độ
+
+- `coordinates` để trống → **không** vẽ marker trên bản đồ.
+- `accuracy: "approximate"` → vẫn vẽ marker nhưng **bắt buộc** kèm nhãn
+  "CẦN KIỂM CHỨNG". Tuyệt đối không dùng làm vị trí chính xác.
+
+Toàn bộ quy tắc này nằm trong `lib/content-status.ts`. UI gọi hàm ở đó,
+không tự kiểm tra `status` rải rác.
+
+### 4. Ảnh
+
+- **Không dùng ảnh AI** hoặc ảnh minh họa để giả làm ảnh tư liệu lịch sử.
+- Không có `src` → hiện "TƯ LIỆU ĐANG ĐƯỢC BỔ SUNG".
+- Mỗi tư liệu phải có `credit` (nguồn) và `license` (giấy phép).
+- `CinematicPlate` chỉ là **lớp trang trí**, không bao giờ nằm trong
+  `ArchiveItem.src`. Nó luôn mang `data-illustrative="true"` trong DOM.
+
+---
+
+## Ghi chú kỹ thuật
+
+### Vì sao không dùng `<ReactLenis>`?
+
+`ReactLenis` giữ instance trong React state và phát ra qua `useImperativeHandle`.
+Ref chỉ cập nhật ở lần render **kế tiếp**, nên trong effect của provider
+`ref.current.lenis` vẫn là `undefined` → driver `raf()` không bao giờ được
+gắn. Lenis chặn wheel rồi chỉ đẩy cuộn trong `raf()`, nên **con lăn chuột
+sẽ chết hoàn toàn**.
+
+`ScrollProvider` vì thế tự khởi tạo `new Lenis(...)` trong effect: nhận
+instance ngay lập tức, vòng đời create/destroy rõ ràng, đúng nghĩa cả với
+React StrictMode remount hai lần.
+
+### Quy tắc đồng bộ cuộn
+
+`autoRaf: false` là **bắt buộc**. Bật `autoRaf: true` đồng thời với
+`gsap.ticker.add(...)` tạo hai `requestAnimationFrame` cùng đẩy Lenis →
+nhấp nháy và scrub rớt nhịp.
+
+Khi người dùng bật **giảm chuyển động**, Lenis **không được khởi tạo** —
+trình duyệt cuộn native, tự nhiên, không bị chiếm quyền.
+
+### Tốc độ tự động cuộn
+
+Nút auto-scroll (`AutoScrollControl`, nằm ở đáy giữa trang) cuộn theo **nhịp
+đều**, phục vụ việc đọc — không phải tiện ích cuộn tự do.
+
+- Tốc độ được khai **duy nhất** tại `src/lib/scroll/scrollBudget.ts` →
+  `PX_PER_SECOND.autoScroll`, hiện là **600 px/s** (gấp đôi mức cũ 300 px/s;
+  ~2/3 viewport mỗi giây, tương đương khoảng 1.5 giây cho một màn hình cao 900px).
+- Trần cuộn chung là `PX_PER_SECOND.default` (**900 px/s**) — đây là mức khác,
+  đừng lẫn với tốc độ auto-scroll.
+- `useAutoScroll.ts` chỉ **đọc** tốc độ qua `autoScrollStep(dt)`, không tự khai
+  số. Muốn đổi tốc độ thì sửa `scrollBudget.ts`.
+- Cuộn tay (wheel / chạm / phím) vẫn **luôn dừng** auto-scroll.
+
+### TypeScript bị pin ở `~5.9.3`
+
+npm đang phát hành `typescript@7.0.2` (bản native compiler mới). `eslint-config-next`
+chưa bảo chắc hỗ trợ, nên dự án giữ 5.9 cho ổn định. Nâng lên khi hệ sinh thái
+sẵn sàng.
+
+### `npm audit` báo 5 lỗi mức `high`
+
+Tất cả nằm ở **devDependencies** (`braces` → `fast-glob` → `@next/eslint-plugin-next`).
+Chỉ là DoS qua glob lồng sâu trong công cụ lint, không liên quan mã chạy thật.
+`npm audit --omit=dev` = **0 lỗi**.
+
+Đừng chạy `npm audit fix --force` — nó sẽ hạ `eslint-config-next` xuống 14.x và
+phá vỡ Next.js 16.
+
+---
+
+## Tiến độ
+
+- [x] **Phase 1** — Nền tảng: scaffold, design system, layout, animation foundation
+- [x] **Phase 2 + 3** — Trang chủ cinematic đầy đủ (7 chương) + route thật
+- [ ] Phase 4 — Scroll reveal nâng cao, parallax ba lớp chi tiết hơn
+- [ ] Phase 5 — Trang dòng thời gian chi tiết (pinned scene thứ hai)
+- [ ] Phase 6 — Bản đồ Leaflet, kho tư liệu, thử thách lịch sử
+- [ ] Phase 7 — Tối ưu hiệu năng, rà soát cuối
+
+### Trang đã hoàn thiện
+
+| Route | Trạng thái |
+|---|---|
+| `/` | ✅ Đầy đủ 7 chương, hero sequence GSAP, timeline ghim |
+| `/gioi-thieu` | ✅ Nội dung thật theo Idea.txt §9 |
+| `/ho-so/[slug]` | ✅ 4 hồ sơ, dữ liệu thật, 10 khối theo §4 |
+| `/ban-do` `/dong-thoi-gian` `/dong-nam-a` `/tu-lieu` `/thu-thach` | 🚧 Khung trang, ghi rõ đang hoàn thiện |
+
+Các route chưa hoàn thiện vẫn **tồn tại và trả về 200** — không có liên kết
+chết. Đây là yêu cầu của Idea.txt §1: "các nút phải hoạt động thật".
+
+Nội dung lịch sử cần được kiểm chứng và cập nhật từ những nguồn phù hợp
+trước khi xuất bản.

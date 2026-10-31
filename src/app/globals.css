@@ -1,26 +1,910 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ==========================================================================
+   ĐỊA CHỈ ĐỎ — Design tokens
+   Bảng màu bắt buộc: đỏ cờ #C8102E · đen #111111 · giấy cũ #F2EBDD · vàng #FFD700
+   ========================================================================== */
+
+@theme {
+  /* --- Đỏ cờ Việt Nam --- */
+  --color-flag-deep: #5e0715;
+  --color-flag-red: #c8102e;
+  --color-flag-bright: #f04a5f;
+  --color-flag-glow: #ff2d55;
+
+  /* --- Đen gần tuyệt đối + các lớp nền nâng cao --- */
+  --color-ink: #111111;
+  --color-ink-900: #0a0a0a;
+  /* Đen tuyệt đối — nền của sơ đồ phòng và của hai tấm rèm chuyển phòng.
+     Phải có mặt trong theme: nếu không, `bg-ink-950` sẽ KHÔNG sinh ra CSS
+     và lớp đó trong suốt — rèm không che được gì, sơ đồ lộ trang phía sau. */
+  --color-ink-950: #050505;
+  --color-ink-800: #161616;
+  --color-ink-700: #1e1e1e;
+  --color-ink-600: #2a2a2a;
+  --color-ink-500: #3a3a3a;
+
+  /* --- Giấy cũ --- */
+  --color-paper: #f2ebdd;
+  --color-paper-dim: #ddd3c1;
+  --color-paper-mute: #a2977f;
+  /* #938a78 giữ được ≥4.88:1 trên ink-700 và ≥5.53:1 trên ink. */
+  --color-paper-faint: #938a78;
+
+  /* --- Vàng nhấn --- */
+  --color-gold: #ffd700;
+  --color-gold-dim: #b39a00;
+  --color-gold-glow: #ffe95c;
+
+  /* --- Viền / đường kẻ kiểu tư liệu --- */
+  --color-line: #2e2a24;
+  --color-line-strong: #4a4238;
+
+  /* --- Hệ số / chuyển động --- */
+  --ease-cinematic: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-emphasis: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* --- Thang chữ biên tập (Phase 6 §3.2) ---------------------------------
+     Đặt sẵn ở đây để mọi route dùng CÙNG một nhịp cỡ chữ, thay vì mỗi
+     trang tự chế `clamp()` riêng rồi lệch dần nhau theo thời gian. */
+  --text-micro: 0.58rem;      /* nhãn mono, chữ ký tư liệu */
+  --text-caption: 0.8rem;     /* chú thích ảnh, metadata */
+  --text-body-sm: 0.9rem;
+  --text-body: 1rem;
+  --text-lead: clamp(1rem, 1.1vw + 0.85rem, 1.18rem);
+  --text-h3: clamp(1.05rem, 0.7vw + 0.9rem, 1.35rem);
+  --text-h2: clamp(1.6rem, 3.1vw + 0.9rem, 2.9rem);
+  --text-h1: clamp(2rem, 5.4vw + 0.9rem, 4.6rem);
+  --text-display: clamp(2.4rem, 7.6vw + 0.6rem, 6.2rem);
+
+  /* Bề rộng đọc chuẩn — giữ đoạn văn trong vùng dễ đọc, không kéo dài
+     hàng chữ trên màn rộng. */
+  --measure: 62ch;
+  --measure-tight: 46ch;
+
+  /* --- Bán kính: giữ tối giản, không "rounded card" AI --- */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ── SCENE-SPECIFIC ART DIRECTION ──────────────────────────────────────── */
+.scene-cinema-line {
+  background: linear-gradient(90deg, rgba(242, 235, 221, 0.22), transparent 42%, rgba(200, 16, 46, 0.44));
+  transform-origin: left center;
+  opacity: 0.7;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+[data-scene-index="02"] .scene-cinema-line {
+  background: linear-gradient(90deg, transparent, rgba(242, 235, 221, 0.28) 40%, transparent);
+}
+
+[data-scene-index="03"] .scene-cinema-line {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.4), transparent 34%);
+}
+
+[data-scene-index="04"] .scene-cinema-line {
+  background: linear-gradient(90deg, rgba(200, 16, 46, 0.5), rgba(242, 235, 221, 0.18), transparent);
+}
+
+[data-scene-index="05"] .scene-cinema-line {
+  background: linear-gradient(90deg, transparent, rgba(200, 16, 46, 0.6) 50%, transparent);
+}
+
+[data-scene-index="06"] .scene-cinema-line {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.42), transparent 65%);
+}
+
+[data-scene-index="07"] .scene-cinema-line {
+  background: linear-gradient(90deg, transparent, rgba(242, 235, 221, 0.34) 50%, transparent);
+}
+
+[data-scene-index="02"] .chapter-ghost,
+[data-scene-index="05"] .chapter-ghost {
+  color: rgba(200, 16, 46, 0.12);
+}
+
+[data-scene-index="03"] .chapter-ghost,
+[data-scene-index="06"] .chapter-ghost {
+  color: rgba(255, 215, 0, 0.1);
+}
+
+/* ── SCENE VIDEO PLANE ────────────────────────────────────────────────────
+   Video tư liệu/khí quyển của các chương không nằm như một background phẳng.
+   Nó là một mặt phẳng camera độc lập: trôi nhẹ theo scroll, được grade bằng
+   ánh đỏ/đen để chữ HTML luôn là lớp đọc được phía trên. Khi chưa có `src`,
+   SceneMedia không render video và SceneBackdrop bên dưới vẫn giữ nguyên.
+*/
+.scene-video-plane {
+  isolation: isolate;
+  overflow: hidden;
+  background: #080707;
+  transform-origin: center center;
+}
+
+/* Chuỗi Part 02 là một opening shot riêng. Không cho video nhận chiều cao
+   toàn bộ văn bản + timeline của section, nếu không object-cover sẽ phóng
+   clip lên hàng nghìn pixel và trông như bị nhòe. */
+.scene-video-stage {
+  bottom: auto;
+  min-height: 100svh;
+}
+
+.scene-video-plane::before,
+.scene-video-plane::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.scene-video-plane::before {
+  background:
+    linear-gradient(90deg, rgba(7, 7, 7, 0.72) 0%, rgba(7, 7, 7, 0.18) 48%, rgba(7, 7, 7, 0.58) 100%),
+    linear-gradient(180deg, rgba(7, 7, 7, 0.56) 0%, transparent 32%, rgba(7, 7, 7, 0.7) 100%);
+  mix-blend-mode: multiply;
+}
+
+.scene-video-plane::after {
+  background:
+    radial-gradient(ellipse 56% 54% at 76% 38%, rgba(200, 16, 46, 0.24), transparent 70%),
+    radial-gradient(ellipse 92% 86% at 50% 50%, transparent 46%, rgba(0, 0, 0, 0.6) 100%);
+}
+
+.scene-video-media {
+  z-index: 1;
+  filter: saturate(0.94) contrast(1.04) brightness(0.82);
+  transform: none;
+}
+
+[data-scene-index="02"] .scene-video-plane {
+  background:
+    radial-gradient(ellipse 58% 42% at 72% 64%, rgba(180, 74, 34, 0.18), transparent 72%),
+    #080707;
+}
+
+[data-scene-index="02"] .scene-video-media {
+  filter: saturate(0.94) contrast(1.04) brightness(0.82);
+}
+
+/* Part 02: biên tập nằm trên cùng một sân khấu video. Vệt tối tập trung ở
+   bên trái để chữ đọc được mà vẫn giữ chiều sâu của tư liệu lịch sử. */
+.scene-sequence-copy {
+  isolation: isolate;
+}
+
+.scene-sequence-copy::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(4, 5, 6, 0.78) 0%, rgba(4, 5, 6, 0.4) 34%, rgba(4, 5, 6, 0) 68%),
+    linear-gradient(180deg, rgba(4, 5, 6, 0.48) 0%, transparent 34%, rgba(4, 5, 6, 0.26) 100%);
+}
+
+.scene-sequence-copy-stage {
+  will-change: opacity, transform;
+}
+
+.scene-sequence-copy-card {
+  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.52);
+}
+
+/* Nhịp B của chuỗi cảnh 02 chỉ hiện khi cuộn trên desktop (GSAP bật). Màn hẹp
+   không có GSAP pin nên nó phải hiện sẵn — xem khối media bên dưới. */
+.scene-sequence-copy-journey {
+  opacity: 0;
+}
+
+/* Màn hẹp: sân khấu chuỗi cảnh 02 KHÔNG còn pin — hai nhịp biên tập xếp dọc
+   trong luồng trang. Bỏ căn đáy và bỏ giới hạn chiều cao của thẻ chữ, vì thẻ
+   không còn bị nhốt trong một khung cao đúng 100svh. */
+@media (max-width: 1023px) {
+  .scene-sequence-copy-stage {
+    align-items: flex-start;
+    padding-bottom: 0;
+  }
+
+  .scene-sequence-copy-card {
+    max-height: none;
+  }
+
+  .scene-sequence-copy-journey {
+    opacity: 1;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Khi Chapter 02 đã có master pin cho chuỗi video, timeline bên trong không
+   được pin lồng thêm một lần nữa. Xếp các mốc thành nhịp dọc để phần tư liệu
+   thứ hai tiếp tục cuộn tự nhiên sau khi clip cuối kết thúc. */
+[data-timeline-static="true"] .tl-track {
+  flex-direction: column !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+[data-timeline-static="true"] .tl-track > * {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Font tokens dùng `inline` để utility tham chiếu trực tiếp biến next/font */
+@theme inline {
+  /* Font display nạp qua <link> từ Google Fonts (xem layout.tsx) nên dùng
+     tên family trực tiếp, không có biến next/font nào để tham chiếu. */
+  --font-display: "Noto Serif Display", "Times New Roman", serif;
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", monospace;
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  html {
+    /* KHÔNG đặt scroll-behavior: smooth — Lenis đang sở hữu việc cuộn.
+       Đặt ở đây sẽ đánh cắp cuộn native và làm chậm route transition. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--color-ink);
+    color: var(--color-paper);
+    font-family: var(--font-sans);
+    font-feature-settings: "kern", "liga", "calt";
+    text-rendering: optimizeLegibility;
+    /* Không cho trình duyệt "bịa" nét đậm giả khi font chưa tải xong —
+       dấu tiếng Việt bị méo rất dễ thấy khi bị làm đậm giả. */
+    font-synthesis-weight: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: var(--color-flag-red);
+    color: var(--color-paper);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 3px;
+    border-radius: var(--radius-xs);
+  }
+
+  /* Ô nhập và select dùng màu nhấn cùng nhận diện thay vì xanh mặc định
+     của hệ điều hành, trông lạc lõng trong bảng màu đỏ/đen. */
+  input,
+  select,
+  textarea {
+    accent-color: var(--color-flag-red);
+  }
+
+  /* Mọi neo nội bộ phải dừng dưới header cố định, không bị header che mất
+     dòng đầu khi người dùng bấm "bỏ qua" hoặc một liên kết trong trang. */
+  :target,
+  [id] {
+    scroll-margin-top: 6.5rem;
+  }
+
+  /* Tiêu đề dùng font display, độ dày lớn, tracking hơi khép */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.08;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-ink-900);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-ink-600);
+    border: 2px solid var(--color-ink-900);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-flag-deep);
+  }
+
+  /* Media: không cho ảnh vỡ layout, không chọn được text trên ảnh */
+  img,
+  svg,
+  video {
+    display: block;
+    max-width: 100%;
+  }
+}
+
+/* ==========================================================================
+   DÒNG THỜI GIAN — bố cục khi bật giảm chuyển động
+   --------------------------------------------------------------------------
+   Khối này CỐ Ý ĐỂ NGOÀI mọi `@layer`.
+
+   Tailwind v4 đặt utility vào layer `utilities`. Theo thứ tự ưu tiên trong
+   cascade, style "unlayered" LUÔN thắng style có layer — kể cả `@layer
+   utilities`. Nếu đặt khối này trong layer, các utility `md:flex-row`,
+   `md:w-max`, `md:max-w-none` sẽ ghi đè im lặng và dải thời gian vẫn
+   chạy ngang — tức vẫn bắt người dùng phải cuộn ngang, đúng thứ brief §12
+   yêu cầu bỏ.
+
+   Khi bật giảm chuyển động:
+     • dải thời gian XẾP DỌC, đủ rộng bằng khung nhìn,
+     • mỗi mốc chiếm một hàng, đọc từ trên xuống,
+     • không ghim, không cuộn ngang, không scrub.
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-track {
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .tl-track > * {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
+
+/* ==========================================================================
+   BẢN ĐỒ TRONG CẢNH 05 (trang chủ) — hòa màu tối
+   --------------------------------------------------------------------------
+   Bản đồ Google nhúng mặc định có nền SÁNG, lệch hẳn với bảng màu tối
+   của trang. Ở `/ban-do` màu sáng được giữ nguyên (đó là hành vi sẵn có
+   của dự án, xem `GoogleMapsView.tsx`).
+
+   Ở đây — trong cảnh cinematic 05 — một khối trắng giữa trang tối là lỗi
+   bố cục. Nên ta hạ màu riêng cho khung bản đồ của cảnh này, KHÔNG đụng
+   tới `GoogleMapsView` nên `/ban-do` giữ nguyên.
+
+   Kỹ thuật: đảo ngược (invert) rồi xoay sắc độ 180° để màu trở lại đúng
+   hướng, kèm giảm bão hòa cho nhẹ. Chỉ áp cho `iframe` — thanh công cụ
+   "Mở Google Maps" nằm NGOÀI iframe nên giữ nguyên màu của trang.
+   ========================================================================== */
+
+.map-frame-dark iframe {
+  filter: invert(1) hue-rotate(180deg) grayscale(0.35) brightness(0.86)
+    contrast(0.92) saturate(0.7);
+}
+
+/* ==========================================================================
+   MỞ ĐẦU CẢNH 01 — trạng thái "trước khi mở đầu"
+   --------------------------------------------------------------------------
+   Trong Phase 1 (chỉ có lá cờ), tiêu đề và các tầng hỗ trợ phải biến mất.
+
+   ── VÌ SAO ẨN BẰNG CSS CHỨ KHÔNG ẨN BẰNG JAVASCRIPT ──────────────────────
+
+   Nếu trạng thái ẩn chỉ được đặt trong `useLayoutEffect` (chạy lúc hydrate)
+   thì bản HTML do server gửi đã được VẼ ra trước đó. Đo thật ở 1440×900:
+
+       t = 1181 ms   tiêu đề hiện ĐẦY ĐỦ (opacity 1, transform none)
+       t = 1532 ms   mới bị ẩn đi, rồi mới chạy hiệu ứng
+
+   Tức là người xem thấy tiêu đề và các nút bút hiện ra trước, rồi biến mất,
+   rồi mới hiện lại — một nháp rõ ràng, đúng thứ phải tránh.
+
+   Nên: ẩn bằng CSS, và dùng `<noscript>` (đặt trong chính component) để BỎ
+   ẩn khi không có JavaScript. Không nội dung nào bị ẩn vĩnh viễn.
+
+   ── GIẢM CHUYỂN ĐỘNG ──────────────────────────────────────────────────────
+
+   Khi bật giảm chuyển động: tiêu đề hiện ngay từ khung hình đầu tiên, và
+   lá cờ không bao giờ được vẽ ra (mở đầu bị bỏ hẳn). Cũng bằng CSS, để không
+   có nháp lúc hydrate.
+
+   Các quy tắc dưới đặt NGOÀI mọi `@layer` — style "unlayered" luôn thắng
+   style có layer, kể cả `@layer utilities` của Tailwind.
+   ========================================================================== */
+
+[data-hero-line] {
+  opacity: 0;
+  transform: translateY(112%);
+}
+
+[data-hero-intro] {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+/* ── HERO ĐÃ SẴN SÀNG ──────────────────────────────────────────────────────
+   Khi mở đầu đã xong (hoặc bị bỏ qua, hoặc đã xem trước trong phiên này),
+   Hero gắn cờ `data-hero-ready` lên chính nó. Khi đó hai quy tắc trên được
+   ghi đè bằng trạng thái HIỂN THỊ.
+
+   Vì sao cần cờ này, sao không dùng `clearProps` của GSAP:
+   `clearProps` XOÁ inline style của GSAP — mà inline style chính là thứ đang
+   giữ chữ ở trạng thái hiện. Xoá xong, quy tắc CSS ở trên lại thắng, và
+   tiêu đề biến mất ĐÚNG LÚC mở đầu kết thúc. Đo thật: sau khi mở đầu xong,
+   `opacity` của tiêu đề rơi về 0 và cả khối chữ biến mất khỏi trang.
+
+   Cờ `data-hero-ready` là cách sửa đúng: nó nằm ở CSS, nên nó thắng ngay khi
+   GSAP buông inline style, và không cần JS nào giữ chữ sống. */
+[data-hero-ready] [data-hero-line],
+[data-hero-ready] [data-hero-intro] {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── CINEMATIC STAGE ──────────────────────────────────────────────────────
+   A continuous photographic stage for the opening: deep vignette, a quiet
+   red edge-light, and restrained film density. These layers sit above scene
+   media but below HTML content, so supplied videos remain the focal material.
+*/
+[data-cinematic-hero]::before,
+[data-cinematic-hero]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+}
+
+[data-cinematic-hero]::before {
+  background:
+    linear-gradient(90deg, rgba(5, 5, 5, 0.76) 0%, rgba(5, 5, 5, 0.36) 30%, rgba(5, 5, 5, 0.04) 68%, rgba(5, 5, 5, 0.56) 100%),
+    linear-gradient(180deg, rgba(5, 5, 5, 0.52) 0%, transparent 24%, transparent 70%, rgba(5, 5, 5, 0.72) 100%);
+  mix-blend-mode: multiply;
+}
+
+[data-cinematic-hero]::after {
+  background:
+    radial-gradient(ellipse 58% 88% at 92% 50%, rgba(200, 16, 46, 0.2), transparent 64%),
+    radial-gradient(ellipse 90% 74% at 50% 48%, transparent 44%, rgba(0, 0, 0, 0.46) 100%);
+}
+
+[data-cinematic-hero] [data-hero-content] {
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.42);
+}
+
+[data-cinematic-hero] [data-hero-line] {
+  text-wrap: balance;
+}
+
+.hero-fabric {
+  position: absolute;
+  z-index: 8;
+  pointer-events: none;
+  background:
+    linear-gradient(110deg, rgba(37, 0, 7, 0.22), rgba(111, 0, 18, 0.9) 38%, rgba(200, 16, 46, 0.58) 62%, rgba(18, 0, 4, 0.88)),
+    repeating-linear-gradient(76deg, rgba(255, 120, 120, 0.08) 0 2px, transparent 2px 34px);
+  filter: blur(0.2px) saturate(1.12);
+  mix-blend-mode: multiply;
+}
+
+.hero-fabric-right {
+  right: -7vw;
+  top: -12vh;
+  width: 24vw;
+  height: 104vh;
+  transform: rotate(8deg) skewY(-10deg);
+  clip-path: polygon(36% 0, 100% 0, 100% 100%, 62% 88%, 28% 58%, 0 30%);
+  opacity: 0.82;
+}
+
+.hero-fabric-bottom {
+  left: 12%;
+  right: -8%;
+  bottom: -18vh;
+  height: 26vh;
+  transform: rotate(-3deg);
+  clip-path: polygon(0 28%, 22% 8%, 47% 26%, 73% 4%, 100% 24%, 100% 100%, 0 100%);
+  opacity: 0.58;
+}
+
+@media (max-width: 639px) {
+  .hero-fabric-right {
+    right: -22vw;
+    width: 42vw;
+    opacity: 0.7;
+  }
+
+  .hero-fabric-bottom {
+    left: -12%;
+    height: 18vh;
+  }
+}
+
+@media (max-width: 639px) {
+  [data-cinematic-hero]::before {
+    background:
+      linear-gradient(90deg, rgba(5, 5, 5, 0.72), rgba(5, 5, 5, 0.18)),
+      linear-gradient(180deg, rgba(5, 5, 5, 0.56), transparent 28%, rgba(5, 5, 5, 0.8));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-hero-line],
+  [data-hero-intro] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* Reduced motion keeps the supplied hero frame visible; only the scrub
+     controller is disabled by React. */
+}
+
+/* ==========================================================================
+   Leaflet — hòa vào nền tối
+   --------------------------------------------------------------------------
+   CỐ Ý KHÔNG bọc khối này trong @layer.
+
+   CSS của Leaflet được `@import` ở đầu file và KHÔNG nằm trong layer nào.
+   Theo thứ tự ưu tiên trong cascade, style "unlayered" LUÔN thắng style có
+   layer — kể cả `@layer components`. Nghĩa là nếu khối này nằm trong layer,
+   toàn bộ phần dưới đây bị Leaflet ghi đè im lặng: nền bản đồ lộ ra màu xám
+   mặc định #ddd, popup trắng, marker viền đen.
+
+   Để khối này unlayered, specificity bằng nhau và đặt SAU import, các quy tắc
+   ở đây mới thắng đúng như mong muốn.
+   ========================================================================== */
+
+.leaflet-container {
+  background-color: var(--color-ink-900);
+  font-family: var(--font-sans);
+  outline: none;
+}
+
+/* Tile OSM mặc định quá sáng, hạ tông để hòa với bảng màu */
+.leaflet-tile-pane {
+  filter: grayscale(1) invert(1) contrast(0.72) brightness(0.86) sepia(0.22);
+}
+
+.leaflet-popup-content-wrapper {
+  background-color: var(--color-ink-800);
+  color: var(--color-paper);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.7);
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  width: auto !important;
+  min-width: 260px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.leaflet-popup-tip {
+  background-color: var(--color-ink-800);
+  border: 1px solid var(--color-line-strong);
+}
+
+.leaflet-popup-close-button {
+  color: var(--color-paper-mute) !important;
+  padding: 6px 6px 0 0 !important;
+}
+.leaflet-popup-close-button:hover {
+  color: var(--color-flag-red) !important;
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background-color: var(--color-ink-800);
+  color: var(--color-paper);
+  border-bottom-color: var(--color-line-strong);
+}
+.leaflet-bar a:hover {
+  background-color: var(--color-ink-700);
+  color: var(--color-flag-bright);
+}
+
+.leaflet-control-attribution {
+  background-color: rgb(17 17 17 / 0.82) !important;
+  color: var(--color-paper-faint) !important;
+  font-size: 10px !important;
+}
+.leaflet-control-attribution a {
+  color: var(--color-paper-mute) !important;
+}
+
+/* Marker: ẩn viền mặc định, vẽ bằng divIcon */
+.leaflet-marker-icon.red-address-marker {
+  background: transparent;
+  border: 0;
+}
+
+/* ==========================================================================
+   Hạt phim (film grain) — SVG turbulence thuần, không file ngoài
+   ========================================================================== */
+
+@layer utilities {
+  /* Shimmer cho Skeleton — keyframes phải khai trong @layer utilities để
+     Tailwind v4 sinh được, và phải nằm trong @keyframes đúng scope. */
+  @keyframes skeleton-sweep {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Vệt vàng quét qua thanh chờ của loading screen. */
+  @keyframes loader-sweep {
+    0% {
+      transform: translateX(-130%);
+    }
+    100% {
+      transform: translateX(330%);
+    }
+  }
+
+  .loader-sweep {
+    animation: loader-sweep 1.6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .loader-sweep {
+      animation: none;
+      width: 100%;
+      opacity: 0.55;
+    }
+  }
+
+  /* Chỉ dẫn cuộn của hero: con lăn vàng nhích xuống rồi mờ dần */
+  @keyframes cue-wheel {
+    0% {
+      transform: translateY(0);
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    70% {
+      transform: translateY(9px);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(9px);
+      opacity: 0;
+    }
+  }
+
+  /* Vệt sáng chạy chéo qua nền hero */
+  @keyframes hero-sweep {
+    0% {
+      transform: translateX(-30%) rotate(16deg);
+      opacity: 0.06;
+    }
+    50% {
+      opacity: 0.16;
+    }
+    100% {
+      transform: translateX(140%) rotate(16deg);
+      opacity: 0.06;
+    }
+  }
+
+  /* ── Lá cờ ở cảnh mở đầu (Scene 01) ─────────────────────────────────
+     Vải thoáng qua — biên độ rất nhỏ, đủ để lớp nền có "sinh khí" mà
+     không khiến nội dung chữ bị rung. Khối lượng biến đổi rất nhẹ nên
+     không tốn GPU: chỉ `transform` trên một phần tử.
+
+     Lá cờ nằm TRONG một khung `overflow-hidden` có tỉ lệ 2:3, nên biên độ
+     phải đủ nhỏ để không bao giờ lộ ra khe sáng ở mép. Vì vậy scale nền là
+     1.04 (dư chỗ) và phần dịch chỉ ±0.6%.
+
+     Khối lượng này bị khoá trong khối `prefers-reduced-motion` ở cuối
+     file (animation-duration: 0.01ms) — nên người dùng bật giảm chuyển
+     động không thấy vải bay. */
+  @keyframes dd-flag-drift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1.04) skewY(0deg);
+    }
+    50% {
+      transform: translate3d(-0.6%, 0.35%, 0) scale(1.055) skewY(-0.3deg);
+    }
+  }
+
+  .film-grain::before {
+    content: "";
+    position: absolute;
+    inset: -50%;
+    pointer-events: none;
+    opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: grain-drift 7s steps(6) infinite;
+  }
+
+  @keyframes grain-drift {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    20% {
+      transform: translate(-3%, 2%);
+    }
+    40% {
+      transform: translate(2%, -3%);
+    }
+    60% {
+      transform: translate(-2%, -2%);
+    }
+    80% {
+      transform: translate(3%, 1%);
+    }
+  }
+
+  /* ── Bàn sáng (mặt bản đồ phát sáng ở hero) ─────────────────────────── */
+
+  /* Đường đồng mức trôi rất chậm — chậm tới mức bạn không thấy nó trôi,
+     chỉ nhận ra khi nhìn lâu. Đó mới đúng cảm giác "tấm kính đang sống". */
+  @keyframes lt-drift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(-14px, 9px, 0) scale(1.035);
+    }
+  }
+
+  /* Vệt quét chạy ngang qua mặt kính, như máy quét tài liệu. */
+  @keyframes lt-scan {
+    0% {
+      transform: translateX(-120%);
+    }
+    55%,
+    100% {
+      transform: translateX(340%);
+    }
+  }
+
+  /* Điểm địa chỏ đỏ nhịp đập — mỗi điểm lệch pha một chút. */
+  @keyframes lt-pin {
+    0%,
+    100% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  .lt-drift {
+    animation: lt-drift 34s ease-in-out infinite;
+  }
+
+  .lt-scan {
+    animation: lt-scan 9s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  }
+
+  .lt-pin {
+    animation: lt-pin 3.6s ease-in-out infinite;
+  }
+
+  /* Vignette */
+  .vignette::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 42%,
+      rgb(10 10 10 / 0.35) 78%,
+      rgb(10 10 10 / 0.72) 100%
+    );
+  }
+
+  /* Đường kẻ tư liệu dùng làm divider */
+  .rule-tick {
+    background-image: repeating-linear-gradient(
+      to right,
+      var(--color-line-strong) 0 1px,
+      transparent 1px 8px
+    );
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     Lớp dùng chung — Phase 6 §3
+     Mục tiêu: cùng một ngôn ngữ hình ảnh ở mọi route, và mỗi lớp đều tự
+     tắt khi người dùng bật giảm chuyển động (xem khối media query cuối).
+     ══════════════════════════════════════════════════════════════════════ */
+
+  /* Bề rộng đọc chuẩn cho đoạn văn xuôi. */
+  .measure {
+    max-width: var(--measure);
+  }
+  .measure-tight {
+    max-width: var(--measure-tight);
+  }
+
+  /* Số chương khổng lồ mờ — dấu ấn triển lãm, không phải nội dung.
+     `aria-hidden` được đặt ở markup vì đây là trang trí thuần. */
+  .chapter-ghost {
+    font-family: var(--font-display);
+    font-size: clamp(9rem, 26vw, 24rem);
+    line-height: 0.78;
+    font-weight: 700;
+    letter-spacing: -0.05em;
+    color: var(--color-paper);
+    opacity: 0.035;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  /* Đường kẻ kiểu tư liệu: một số phần trang dùng `TickedRule`, số khác vẽ
+     tay. Lớp này cho đường ngang có đầu dàu dần — chi tiết nhỏ nhưng tạo
+     cảm giác "in ấn" thay vì "web". */
+  .rule-fade-r {
+    background-image: linear-gradient(
+      to right,
+      var(--color-line-strong) 0,
+      var(--color-line-strong) 22%,
+      transparent 100%
+    );
+  }
+
+  /* Chữ đặt trên nền tối/ảnh: bóng rất nhẹ để đọc được mà không thành
+     "glow" — tránh đúng cái cám dỗ dành cho tiêu đề neon. */
+  .text-cinematic {
+    text-shadow: 0 2px 18px rgb(10 10 10 / 0.75);
+  }
+
+  /* Số chương dọc nhỏ dùng cho SectionLabel và mốc thời gian: chữ mono,
+     tabular, rộng chữ cố định để các năm không nhảy nhau khi đổi chữ số. */
+  .numeral {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    letter-spacing: 0.14em;
+  }
+
+  /* Băng chuyển màu giữa hai chương — thay gradient trang trí rải rác.
+     Dùng cho section kế tiếp đổi sắc độ nền một cách có chủ đích. */
+  .chapter-shift {
+    background-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      rgb(94 7 21 / 0.16) 22%,
+      rgb(94 7 21 / 0.16) 78%,
+      transparent 100%
+    );
+  }
+
+  /* An toàn: nếu người dùng giảm chuyển động, khoá toàn bộ animation nền */
+  @media (prefers-reduced-motion: reduce) {
+    .film-grain::before {
+      animation: none;
+    }
+    .animate-\[cue-wheel_2s_ease-in-out_infinite\] {
+      animation: none;
+      transform: translateY(0);
+      opacity: 1;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      /* Chặn luôn scroll-smooth: bật "reduce" rồi vẫn bị cuộn mượt có
+         nghĩa hiệu ứng vẫn đang chạy. */
+      scroll-behavior: auto !important;
+    }
+    /* Vân chuyển động theo con trỏ cũng phải dừng. */
+    .chapter-shift {
+      background-image: none;
+    }
+  }
 }
