@@ -13,7 +13,15 @@ Quy tắc:
 export async function POST(req: NextRequest) {
   const { messages } = await req.json();
   const apiKey = process.env.OPENAI_API_KEY;
-  const baseUrl = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+  /*
+    `OPENAI_BASE_URL` phải là gốc API, KHÔNG có dấu "/" ở cuối — đoạn dưới
+    luôn ghép thêm `/chat/completions`. Nhiều nhà cung cấp (Gemini, một số
+    proxy) công bố URL kết thúc bằng "/", và khi đó `.../openai//chat/
+    completions` trả 404. Cắt hết dấu "/" thừa để việc dán URL không còn là
+    cái bẫy.
+  */
+  const baseUrl = (process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1")
+    .replace(/\/+$/, "");
   const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
   if (!apiKey) {
@@ -23,6 +31,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  /* Chỉ gửi 10 lượt gần nhất: hội thoại dài không được phép phình payload
+     (và hoá đơn) mỗi lần người xem hỏi thêm một câu. */
+  const history = Array.isArray(messages) ? messages.slice(-10) : [];
+
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
@@ -31,7 +43,7 @@ export async function POST(req: NextRequest) {
     },
     body: JSON.stringify({
       model,
-      messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+      messages: [{ role: "system", content: SYSTEM_PROMPT }, ...history],
       max_tokens: 200,
       temperature: 0.4,
     }),

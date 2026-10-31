@@ -333,6 +333,71 @@ phá vỡ Next.js 16.
 
 ---
 
+## Hướng dẫn viên AI (khung chat góc phải)
+
+Giao diện: `src/components/chat/ChatCapsule.tsx`. Máy chủ: `src/app/api/chat/route.ts`.
+Route này nói **đúng giao thức OpenAI** (`POST {base}/chat/completions`), nên dùng được với
+mọi nhà cung cấp "OpenAI-compatible" — không cần SDK, không cần thêm gói npm.
+
+### Ba biến môi trường
+
+| Biến | Bắt buộc | Mặc định | Ý nghĩa |
+|---|---|---|---|
+| `OPENAI_API_KEY` | ✅ | — | Khoá của nhà cung cấp. Chỉ đọc ở server |
+| `OPENAI_BASE_URL` | — | `https://api.openai.com/v1` | Gốc API, **không** có `/` cuối |
+| `OPENAI_MODEL` | — | `gpt-4o-mini` | Tên model theo nhà cung cấp |
+
+Thiếu khoá ⇒ cả site vẫn chạy, chỉ khung chat trả "Chưa cấu hình OPENAI_API_KEY.".
+Mẫu: `.env.example`.
+
+### Chạy ở máy
+
+```bash
+cp .env.example .env.local      # rồi điền OPENAI_API_KEY
+npm run dev
+```
+
+### Chạy trên Vercel
+
+1. **Project → Settings → Environment Variables** → thêm `OPENAI_API_KEY`
+   (Environment: *Production*, và *Preview* nếu muốn thử ở preview).
+2. Thêm `OPENAI_BASE_URL` + `OPENAI_MODEL` nếu không dùng OpenAI.
+3. **Deployments → ⋯ → Redeploy.** Biến môi trường chỉ có hiệu lực ở lần deploy **mới**;
+   sửa biến rồi mở lại URL cũ vẫn ra lỗi cũ.
+4. Mở site → nút góc dưới phải → hỏi thử một câu.
+
+### Kiểm tra nhanh bằng curl
+
+```bash
+curl -sS https://<domain>/api/chat \
+  -H 'content-type: application/json' \
+  -d '{"messages":[{"role":"user","content":"Ngày Giải phóng là khi nào?"}]}'
+# → {"reply":"..."}          thành công
+# → {"error":"..."}          xem mã lỗi bên dưới
+```
+
+### Lỗi thường gặp
+
+| Hiện tượng | Nguyên nhân |
+|---|---|
+| `401` / `invalid_api_key` | Khoá sai, đã thu hồi, hoặc dán kèm khoảng trắng/xuống dòng |
+| `404` `model not found` | `OPENAI_MODEL` không đúng tên của **nhà cung cấp đó** (mỗi nơi đặt một kiểu) |
+| `404` trên một số provider | `OPENAI_BASE_URL` thừa `/` hoặc thiếu `/v1` — route đã tự cắt `/` thừa, nhưng `/v1` phải có nếu provider yêu cầu |
+| `400` `max_tokens` / `temperature` không hỗ trợ | Model dạng "reasoning" (o-series, gpt-5…) không nhận hai tham số này — chọn model thường |
+| `429` / `insufficient_quota` | Hết hạn mức hoặc hết credit của khoá |
+| Chat trả đúng câu "Chưa cấu hình OPENAI_API_KEY." | Chưa thêm biến, hoặc chưa redeploy sau khi thêm |
+
+### Giới hạn cần biết
+
+- Route là **công khai**: ai biết URL cũng gọi được. Đặt hạn mức chi tiêu ở phía nhà cung
+  cấp, và chỉ dùng khoá riêng cho site này. Chưa có rate-limit theo IP.
+- `max_tokens: 200` và tối đa 10 lượt hội thoại gần nhất được gửi đi — để hoá đơn không
+  phình theo độ dài cuộc trò chuyện.
+- Lịch sử chat lưu ở `localStorage` của người xem (`chatHistory`), không lưu ở server.
+- System prompt nằm trong `route.ts`; sửa ở đó để đổi giọng điệu/phạm vi trả lời.
+
+---
+
 ## Tiến độ
 
 - [x] **Phase 1** — Nền tảng: scaffold, design system, layout, animation foundation
