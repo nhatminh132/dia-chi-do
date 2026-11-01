@@ -262,6 +262,71 @@ cảnh này (thấy trong `.tmp/vc-m-part4.png`).
 
 `npx tsc --noEmit`, `npx eslint src` sạch; `npm run build` pass (23 route).
 
+## Nhạc nền mới — thay bài, bỏ dòng tác giả, KHÔNG tự phát
+
+Chủ dự án đưa một tệp MP3 và yêu cầu: dùng nó cho trình phát nhạc, bật tự phát, xoá dòng
+"Không gian âm thanh" và chữ "Ambience". Sau khi xem bản chạy thử, chủ dự án đổi ý ở phần
+tự phát: **"tắt tự động play"**. Trạng thái cuối cùng dưới đây là bản đã tắt tự phát.
+
+### 1. Tệp nhạc
+
+- Nguồn: `C:\Users\Nhật Minh\Downloads\romansenykmusic-deep-cinematic-emotional-ambient-125957.mp3`
+  → chép vào `public/audio/deep-cinematic-emotional-ambient.mp3` (5,5 MB, đo được **3:00**,
+  `duration = 180,61 s`).
+- `src/data/tracks.ts`: thay mục duy nhất trong `TRACKS` bằng bài này
+  (`id: "deep-cinematic"`). `ambient-hall.wav` (24 giây, sinh tại chỗ) **vẫn còn** trong
+  `public/audio/` nhưng không còn trong danh sách phát — xoá hẳn thì phải chắc không ai
+  cần lại bản lặp ngắn đó.
+- Tên tác giả `"RomanSenykMusic"` lấy từ chính tên tệp gốc, **chưa đối chiếu giấy phép** —
+  xem mục "Chưa giải quyết" bên dưới. Dòng tác giả không còn hiện trên trình phát nữa nên
+  chỗ duy nhất dùng `artist` là Media Session (màn hình khoá / tai nghe).
+
+### 2. Bỏ dòng tác giả + chữ "Ambience"
+
+- `CapsulePlayer.tsx`: xoá khối `<p>{track.artist ?? "Không rõ tác giả"}</p>` ở đầu bảng mở
+  rộng. Bảng mở giờ bắt đầu bằng thanh tiến trình.
+- Nhãn trên thanh thu gọn: `{failed ? "Lỗi âm thanh" : expanded ? "Ambience" : "Nhạc nền"}`
+  → `{failed ? "Lỗi âm thanh" : "Nhạc nền"}`. Một nhãn duy nhất cho cả hai trạng thái.
+- Tên bài dài (`DEEP CINEMATIC EMOTIONAL AMBIENT`) trước bị cắt "…AM"; đổi `truncate
+  whitespace-nowrap` thành cho xuống dòng (`leading-[1.35]`) để hiện đủ hai dòng.
+
+### 3. Tự phát: đã thử, rồi gỡ bỏ
+
+Bản đầu tiên (đúng yêu cầu "bật auto play") gọi `play()` khi nạp xong bản nhạc, và khi
+trình duyệt từ chối bằng `NotAllowedError` thì treo listener một lần cho cử chỉ đầu tiên
+(`pointerdown` / `touchstart` / `keydown` / `wheel`) để bắt đầu ở lần chạm kế tiếp.
+Đo trên Chromium 1248:
+
+| Chế độ cờ trình duyệt | Sau khi tải trang | Sau khi bấm chỗ trống |
+|---|---|---|
+| `--autoplay-policy=no-user-gesture-required` | phát ngay | phát |
+| `--autoplay-policy=document-user-activation-required` | chờ cử chỉ | phát |
+
+Sau đó chủ dự án yêu cầu tắt tự phát, nên **toàn bộ cơ chế trên đã bị gỡ**: không còn
+`requestAutoplay`, không còn `wantsAutoplay`/`awaitingGesture`, không còn listener cử chỉ;
+`preload` trả về `"metadata"`. Trình phát chỉ phát khi bấm nút. Ghi chú lý do nằm ở đầu
+`CapsulePlayer.tsx` ("Nguyên tắc KHÔNG tự phát") và ngay tại effect nạp bản nhạc.
+
+### Đo lại (sau khi đã tắt tự phát)
+
+`next start -p 3102`, desktop 1440×900, hai chế độ cờ trình duyệt như bảng trên:
+
+| Kiểm tra | Kết quả |
+|---|---|
+| Sau khi tải trang (cờ cho phép tự phát) | nút ở trạng thái "Phát nhạc" — **không tự phát** |
+| Bấm vào chỗ trống trên trang | vẫn "Phát nhạc" |
+| Bấm nút phát | chuyển "Tạm dừng", tiến trình chạy (0,9–1,1 s) |
+| Thời lượng đọc từ phần tử audio | `180,61 s` → hiện `3:00` |
+| Tệp nhạc tải về | `206 deep-cinematic-emotional-ambient.mp3` |
+| Chữ "Ambience" trong body | không có |
+| "Không gian âm thanh" trong body | không có |
+| Mobile 412×915 (cảm ứng) | không có trình phát, **0** yêu cầu `/audio/` |
+
+Ảnh: `.tmp/music-desktop-autoplay-allowed.png`, `.tmp/music-desktop-autoplay-blocked.png`
+(script: `.tmp/verify-music.mjs`, `.tmp/verify-music-mobile.mjs`).
+
+`npx tsc --noEmit`, `npx eslint src` sạch; `npm run build` pass (23 route).
+
 ## Giới hạn tốc độ cuộn + thanh neo chương
 
 1. **Trần tốc độ bánh xe nay có tác dụng thật.** `ScrollProvider` khai
@@ -331,6 +396,10 @@ cảnh này (thấy trong `.tmp/vc-m-part4.png`).
 
 ## Chưa giải quyết (cần quyết định của người dùng)
 
+- Giấy phép bản nhạc `public/audio/deep-cinematic-emotional-ambient.mp3`: tệp do chủ dự án
+  tự đưa vào, tên tác giả `RomanSenykMusic` mới chỉ suy ra từ tên tệp gốc. Cần xác nhận
+  nguồn + loại giấy phép (thường là điều khoản của thư viện nhạc) trước khi xuất bản, nhất
+  là khi trang ghi "Dự án học tập".
 - Giấy phép 4 ảnh mới ở trên: cần chủ dự án xác nhận nguồn + quyền sử dụng để
   nâng `needs_review` → `verified` và điền `license`. Ảnh hầm in còn mang
   watermark VNExpress — nếu là ảnh báo chí thì phải ghi credit theo báo.

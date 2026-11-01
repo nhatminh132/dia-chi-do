@@ -27,11 +27,14 @@ import { cn } from "@/lib/utils";
  * cùng bạn. Vì vậy player nằm NGOÀI cây trang (trong `layout.tsx`) và giữ
  * nguyên trạng thái khi route đổi.
  *
- * ── Nguyên tắc không tự phát ─────────────────────────────────────────────
+ * ── Nguyên tắc KHÔNG tự phát ─────────────────────────────────────────────
  *
- * Trình duyệt chặn phát âm thanh tự động. Player vì thế KHÔNG tự phát khi
- * tải trang — người xem phải bấm. Nút phát ở trạng thái "sẵn sàng" là lời
- * mời, không phải lỗi.
+ * Player chỉ phát khi người xem bấm nút. Không gọi `play()` lúc mount, không
+ * bắt đầu ở cử chỉ đầu tiên, không tự bật lại sau khi đã tạm dừng.
+ *
+ * Trình duyệt vốn chặn phát tự động có tiếng — nên đây cũng là hành vi thật
+ * của trang, không phải mẹo lách. Bản nhạc mới chỉ đổi tệp và tên, quy tắc
+ * này giữ nguyên.
  *
  * ── Bản nâng cấp ─────────────────────────────────────────────────────────
  *
@@ -226,6 +229,7 @@ function CapsulePlayerInner() {
     setReady(false);
     setFailed(false);
 
+    /* KHÔNG tự gọi `play()` ở đây. Bản nhạc chỉ phát khi có cú bấm. */
     if (playing) {
       void el.play().catch(() => setPlaying(false));
     }
@@ -420,10 +424,12 @@ function CapsulePlayerInner() {
         >
           <span className="min-w-0 flex-1">
             <span className="block whitespace-nowrap font-mono text-[0.52rem] uppercase tracking-[0.24em] text-paper-faint">
-              {failed ? "Lỗi âm thanh" : expanded ? "Ambience" : "Nhạc nền"}
+              {failed ? "Lỗi âm thanh" : "Nhạc nền"}
             </span>
             {expanded ? (
-              <span className="block truncate whitespace-nowrap font-mono text-[0.64rem] uppercase tracking-[0.1em] text-paper">
+              /* Tên bản nhạc thật dài ("Deep Cinematic Emotional Ambient"):
+                 cho xuống dòng thay vì cắt bằng dấu ba chấm. */
+              <span className="mt-0.5 block font-mono text-[0.64rem] uppercase leading-[1.35] tracking-[0.1em] text-paper">
                 {hasTrack ? track.title : "Chưa có bản nhạc"}
               </span>
             ) : null}
@@ -475,13 +481,9 @@ function CapsulePlayerInner() {
             >
             {hasTrack ? (
               <>
-                <p
-                  className="truncate font-mono text-[0.56rem] uppercase tracking-[0.18em] text-paper-faint"
-                  aria-live="polite"
-                >
-                  {track.artist ?? "Không rõ tác giả"}
-                </p>
-
+                {/* Dòng tác giả đã bỏ theo yêu cầu: bảng mở chỉ còn tên bản
+                    nhạc (ở thanh trên), tiến trình, điều khiển. Tên tác giả
+                    vẫn đi vào Media Session để màn hình khoá hiện đúng. */}
                 {failed ? (
                   <div className="mt-2.5 flex items-center justify-between gap-3 border border-flag-deep bg-flag-deep/25 px-2.5 py-1.5">
                     <p className="text-[0.72rem] leading-snug text-paper-mute">

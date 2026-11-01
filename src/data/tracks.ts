@@ -19,10 +19,10 @@
  *
  *   export const TRACKS: Track[] = [
  *     {
- *       id: "ambient-hall",
- *       title: "Hành lang trưng bày",
- *       artist: "Không gian âm thanh",
- *       src: "/audio/ambient-hall.wav",
+ *       id: "deep-cinematic",
+ *       title: "Deep Cinematic Emotional Ambient",
+ *       artist: "RomanSenykMusic",
+ *       src: "/audio/deep-cinematic-emotional-ambient.mp3",
  *     },
  *     {
  *       id: "buoi-tang",
@@ -35,10 +35,12 @@
  *
  * ── Ghi chú kỹ thuật ─────────────────────────────────────────────────────
  *
- * - File WAV/AIFF có dung lượng lớn hơn MP3/OGG nhiều lần. Bản nền mặc định
- *   ở đây là WAV 24 giây lặp liên tục (~1 MB) vì nó được sinh tại chỗ, không
- *   phải tải về. Khi bạn thay bằng nhạc thật, hãy dùng MP3 128–192 kbps để
- *   trang vẫn nhẹ.
+ * - File WAV/AIFF có dung lượng lớn hơn MP3/OGG nhiều lần. Bản đang dùng là
+ *   MP3 ~5,5 MB; file WAV 24 giây sinh tại chỗ (`ambient-hall.wav`, ~1 MB)
+ *   vẫn còn trong `/public/audio` nhưng KHÔNG nằm trong danh sách phát nữa.
+ * - Tên tệp gốc: `romansenykmusic-deep-cinematic-emotional-ambient-125957.mp3`.
+ *   Tên tác giả dưới đây lấy từ chính tên tệp đó, CHƯA đối chiếu giấy phép —
+ *   cần xác minh trước khi xuất bản (xem HANDOFF).
  * - Player tự dừng khi người xem điều hướng sang phòng khác? Không — nhạc
  *   nền nên chạy liên tục qua các phòng, giống nhạc nền thật của một bảo
  *   tàng. Nó sẽ dừng khi bạn đóng tab.
@@ -59,10 +61,10 @@ export interface Track {
 
 export const TRACKS: Track[] = [
   {
-    id: "ambient-hall",
-    title: "Hành lang trưng bày",
-    artist: "Không gian âm thanh",
-    src: "/audio/ambient-hall.wav",
+    id: "deep-cinematic",
+    title: "Deep Cinematic Emotional Ambient",
+    artist: "RomanSenykMusic",
+    src: "/audio/deep-cinematic-emotional-ambient.mp3",
     kind: "local",
   },
 ];
