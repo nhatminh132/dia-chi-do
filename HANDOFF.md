@@ -327,6 +327,30 @@ Sau đó chủ dự án yêu cầu tắt tự phát, nên **toàn bộ cơ chế
 
 `npx tsc --noEmit`, `npx eslint src` sạch; `npm run build` pass (23 route).
 
+## Cảnh 02, nhịp Journey: chữ đi từ trên xuống
+
+Yêu cầu trực tiếp: dòng "Từ khát vọng đến ngày thống nhất." phải trượt **từ trên xuống**
+thay vì trồi lên từ dưới.
+
+- Chỗ sửa: `src/components/cinematic/SceneSequenceMedia.tsx`, `master.fromTo(journeyCopy, …)` —
+  trạng thái đầu đổi `y: 22` → `y: -22` (vẫn về `y: 0`). Chỉ đổi dấu; mốc `0.56`, độ dài
+  `0.18`, easing `power2.out` và pha thoát của nhịp City (`y: -18`) giữ nguyên.
+- `StorySection.tsx` (chỗ đặt chữ) không phải sửa. Không đụng logic pin/scrub, thời lượng
+  runway hay việc tua video.
+- Đo bằng Chromium 1440×900, quét `window.scrollY` từ 0 → 9000 mỗi bước 300px và đọc
+  `getComputedStyle` của `[data-sequence-copy="journey"]`:
+
+  | scrollY | translateY | opacity |
+  |---|---|---|
+  | 7800 | **−17,4 px** | 0,21 |
+  | 8100 | **−8,5 px** | 0,62 |
+  | 8400 | **−3,3 px** | 0,85 |
+  | 9000 | −0,05 px | 1,00 |
+
+  Trước khi sửa, cột `translateY` là số **dương** (+22 → 0) — chữ đi lên. Nay là số âm,
+  tức chữ ở phía trên vị trí cuối rồi hạ xuống. Ảnh: `.tmp/journey-mid.png` (giữa hiệu
+  ứng), `.tmp/journey-end.png` (đã đứng yên); script `.tmp/verify-journey.mjs`.
+
 ## Giới hạn tốc độ cuộn + thanh neo chương
 
 1. **Trần tốc độ bánh xe nay có tác dụng thật.** `ScrollProvider` khai

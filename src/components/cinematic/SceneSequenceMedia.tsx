@@ -153,9 +153,13 @@ export function SceneSequenceMedia({
       }
 
       if (journeyCopy) {
+        /* Chữ của nhịp Journey đi TỪ TRÊN XUỐNG (y âm → 0), không phải trồi
+           lên từ dưới. Đây là yêu cầu trực tiếp của chủ dự án; nhịp City phía
+           trên vẫn thoát lên trên như cũ nên hai nhịp đọc thành một mạch chảy
+           xuống. Chỉ đổi dấu của `y`, không đổi mốc thời gian hay độ dài. */
         master.fromTo(
           journeyCopy,
-          { autoAlpha: 0, y: 22 },
+          { autoAlpha: 0, y: -22 },
           { autoAlpha: 1, y: 0, duration: 0.18, ease: "power2.out" },
           0.56,
         );
