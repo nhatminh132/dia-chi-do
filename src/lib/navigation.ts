@@ -82,7 +82,10 @@ export const SITE = {
   tagline: TAGLINE,
   description:
     "Không gian triển lãm lịch sử trực tuyến, khám phá hành trình đấu tranh giành độc lập của Sài Gòn qua các địa điểm, sự kiện và tư liệu lịch sử.",
-  /** Ghi chú biên tập — spec §10, §11. Hiển thị ở footer. */
-  disclaimer:
-    "Dự án học tập chủ đề “Khát vọng độc lập cho thành phố”. Nội dung lịch sử cần được kiểm chứng và cập nhật từ những nguồn phù hợp trước khi xuất bản.",
+  /*
+   * `disclaimer` (câu "Nội dung lịch sử cần được kiểm chứng… trước khi xuất
+   * bản") đã bị bỏ khỏi footer theo yêu cầu của nhóm — xem ghi chú trong
+   * `components/layout/Footer.tsx`. Không giữ lại hằng số này để tránh một
+   * chuỗi "đã xoá" mà không ai render.
+   */
 } as const;

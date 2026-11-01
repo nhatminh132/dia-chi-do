@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { OpenPlanButton } from "@/components/gallery/OpenPlanButton";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
@@ -8,8 +8,13 @@ import { COPYRIGHT_YEAR, NAV_ITEMS, SITE } from "@/lib/navigation";
  * Footer dùng chung — spec §10.
  *
  * Server component (không cần JS): nội dung tĩnh, không có animation.
- * Ghi chú biên tập ở đáy chân trang là BẮT BUỘC — đây là nơi người xem
- * thấy rõ dự án là học tập và nội dung đang chờ kiểm chứng.
+ *
+ * ── Ghi chú biên tập đã bỏ khỏi chân trang ────────────────────────────────
+ * Trước đây đáy chân trang có câu "Nội dung lịch sử cần được kiểm chứng…
+ * trước khi xuất bản" (`SITE.disclaimer`). Câu đó dài, xuống hai dòng trên
+ * điện thoại và lặp lại y nguyên ở phần credit cuối phim. Theo yêu cầu của
+ * nhóm, chỉ giữ dòng bản quyền "Dự án học tập"; phần credit ở
+ * `EndCredits` vẫn nói rõ nội dung được biên soạn từ nguồn đã công bố.
  */
 export function Footer() {
   return (
@@ -101,13 +106,9 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Ghi chú biên tập */}
+        {/* Bản quyền */}
         <div className="mt-14 border-t border-line pt-8">
-          <p className="max-w-3xl text-pretty text-xs leading-relaxed text-paper-faint">
-            {SITE.disclaimer}
-          </p>
-
-          <p className="mt-4 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-paper-faint">
+          <p className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-paper-faint">
             © {COPYRIGHT_YEAR} {SITE.name} — Dự án học tập
           </p>
         </div>

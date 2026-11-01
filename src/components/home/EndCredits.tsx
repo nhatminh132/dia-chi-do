@@ -11,11 +11,25 @@ import { TEAM } from "@/data/team";
  * dấu "HẾT" duy nhất.
  *
  * Server component, CSS thuần. Mọi liên kết đều trỏ tới nơi có thật.
+ *
+ * ── Thành viên là danh sách DỌC, không phải một chuỗi ──────────────────────
+ * Trước đây tên bảy người được nối bằng dấu "·" thành một đoạn văn. Trên
+ * điện thoại đoạn đó tự ngắt dòng ở giữa tên, đọc như một câu vô nghĩa.
+ * Nay mỗi người một dòng: cùng một cột, cùng một nhịp, quét mắt theo chiều
+ * dọc là thấy đủ — và mỗi tên vẫn còn nguyên dấu "(Nhóm trưởng)".
  */
-const CREDITS: { label: string; value: string }[] = [
+type CreditRow = {
+  label: string;
+  /** Một dòng chữ. Bỏ trống khi hàng này dùng `list`. */
+  value?: string;
+  /** Danh sách dọc — mỗi phần tử một dòng. */
+  list?: readonly string[];
+};
+
+const CREDITS: CreditRow[] = [
   { label: "Một dự án của", value: `Nhóm ${TEAM.name}` },
   { label: "Lớp · Trường", value: `Lớp ${TEAM.className} · ${TEAM.school}` },
-  { label: "Thành viên", value: TEAM.members.join(" · ") },
+  { label: "Thành viên", list: TEAM.members },
   {
     label: "Nội dung lịch sử",
     value: "Biên soạn từ các nguồn đã công bố; xem trang Nguồn tham khảo.",
@@ -80,7 +94,21 @@ export function EndCredits() {
                 {row.label}
               </dt>
               <dd className="text-pretty text-[0.88rem] leading-relaxed text-paper-dim">
-                {row.value}
+                {row.list ? (
+                  <ul className="space-y-1.5">
+                    {row.list.map((name) => (
+                      <li key={name} className="flex gap-2.5">
+                        <span
+                          aria-hidden
+                          className="mt-[0.55em] h-px w-3 shrink-0 bg-line-strong"
+                        />
+                        <span>{name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  row.value
+                )}
               </dd>
             </div>
           ))}
@@ -103,10 +131,6 @@ export function EndCredits() {
             Về đầu phim ↑
           </a>
         </nav>
-
-        <p className="mx-auto mt-12 max-w-xl text-balance text-center font-mono text-[0.56rem] uppercase leading-relaxed tracking-[0.18em] text-paper-faint">
-          Dự án học tập · Nội dung cần được kiểm chứng trước khi xuất bản
-        </p>
       </Container>
     </section>
   );

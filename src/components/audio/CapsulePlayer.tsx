@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TRACKS, type Track } from "@/data/tracks";
+import { useHydrated, useIsHandheld } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 
 /**
@@ -40,6 +41,14 @@ import { cn } from "@/lib/utils";
  *    trượt riêng thay vì slider mặc định của trình duyệt.
  *  • Lặp một bài / lặp danh sách / phát ngẫu nhiên (chỉ hiện khi có từ 2 bài).
  *  • Báo lỗi rõ ràng khi tệp âm thanh không tải được, kèm nút thử lại.
+ *
+ * ── TẮT HẲN TRÊN BẢN CẦM TAY ─────────────────────────────────────────────
+ *
+ * Điện thoại: không render gì cả. Không chỉ ẩn bằng CSS — `CapsulePlayer`
+ * trả `null` trước khi mount, nên không có thẻ `<audio>`, không tải tệp
+ * nhạc, không giành vùng chạm ở đáy màn hình (vốn đã chật vì thanh địa chỉ
+ * của trình duyệt). Nhạc nền là trải nghiệm nghe chủ động; trên loa điện
+ * thoại nó chỉ tranh chấp với tiếng của người xem.
  */
 
 type RepeatMode = "off" | "all" | "one";
@@ -76,7 +85,24 @@ function readStoredState(): {
   }
 }
 
+/**
+ * Cổng cầm tay: quyết định TRƯỚC khi component trình phát được mount.
+ *
+ * Tách hai lớp vì hook `useIsHandheld()` phải chạy vô điều kiện — không thể
+ * `return null` sớm trong cùng một component còn nhiều hook phía sau.
+ */
 export function CapsulePlayer() {
+  /* `useHydrated()` để bản cầm tay KHÔNG bao giờ mount trình phát kể cả
+     trong một khung hình: `useIsHandheld()` trả `false` ở lần render đầu
+     (server snapshot), nếu chỉ hỏi nó thì thẻ <audio> đã kịp được tạo rồi
+     mới bị gỡ. */
+  const hydrated = useHydrated();
+  const handheld = useIsHandheld();
+  if (!hydrated || handheld) return null;
+  return <CapsulePlayerInner />;
+}
+
+function CapsulePlayerInner() {
   const [expanded, setExpanded] = useState(false);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);

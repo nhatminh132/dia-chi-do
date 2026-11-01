@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { ParallaxBackdrop } from "@/components/anim/ParallaxBackdrop";
 import { Reveal } from "@/components/anim/Reveal";
 import { Button } from "@/components/ui/Button";
@@ -32,10 +32,19 @@ const METHODS = [
   "Xây dựng trải nghiệm tương tác để hỗ trợ việc học lịch sử.",
 ];
 
-/** Thông tin nhóm do nhóm cung cấp. Trường nào chưa có thì để PENDING_LABEL. */
-const TEAM_INFO: { label: string; value: string | null }[] = [
+/**
+ * Thông tin nhóm do nhóm cung cấp. Trường nào chưa có thì để PENDING_LABEL.
+ *
+ * Thành viên là danh sách dọc (`list`), không nối thành một chuỗi bằng dấu
+ * phẩy: bảy cái tên nối liền sẽ tự ngắt dòng ở giữa tên trên điện thoại.
+ */
+const TEAM_INFO: {
+  label: string;
+  value?: string | null;
+  list?: readonly string[];
+}[] = [
   { label: "Tên nhóm", value: TEAM.name },
-  { label: "Thành viên", value: TEAM.members.join(", ") },
+  { label: "Thành viên", list: TEAM.members },
   { label: "Lớp", value: TEAM.className },
   { label: "Trường", value: TEAM.school },
   { label: "Giáo viên hướng dẫn", value: TEAM.teacher },
@@ -110,12 +119,22 @@ export default function GioiThieuPage() {
                       </dt>
                       <dd
                         className={
-                          field.value
+                          field.value || field.list
                             ? "mt-1.5 text-[0.9rem] text-paper-dim"
                             : "mt-1.5 text-[0.9rem] text-paper-faint"
                         }
                       >
-                        {field.value ?? PENDING_LABEL}
+                        {field.list ? (
+                          <ul className="space-y-1">
+                            {field.list.map((name) => (
+                              <li key={name} className="leading-snug">
+                                {name}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          (field.value ?? PENDING_LABEL)
+                        )}
                       </dd>
                     </div>
                   ))}

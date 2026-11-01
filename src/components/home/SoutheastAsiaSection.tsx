@@ -1,4 +1,4 @@
-﻿import { ChapterFrame } from "@/components/anim/ChapterFrame";
+import { ChapterFrame } from "@/components/anim/ChapterFrame";
 import { Reveal } from "@/components/anim/Reveal";
 import { Button } from "@/components/ui/Button";
 import { getCountries } from "@/lib/content";
@@ -98,21 +98,9 @@ export function SoutheastAsiaSection() {
         ))}
       </Reveal>
 
-      {/* Lưu ý biên tập — giữ nguyên vì đây là điều dễ sai nhất */}
-      <Reveal variant="up" className="mt-8" respectReducedMotion>
-        <div className="border-l-2 border-gold-dim bg-ink-900/60 px-5 py-4">
-          <p className="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-gold-dim">
-            Lưu ý biên tập
-          </p>
-          <p className="mt-2 max-w-3xl text-pretty text-[0.85rem] leading-relaxed text-paper-mute">
-            Tuyên bố độc lập của Philippines năm 1898 và việc Hoa Kỳ công nhận
-            độc lập năm 1946 là hai sự kiện khác nhau, cần được trình bày chính
-            xác. Các phong trào giải phóng dân tộc ở Đông Nam Á không diễn ra
-            theo một khuôn mẫu duy nhất; điểm chung là khát vọng tự quyết và
-            mong muốn thoát khỏi sự thống trị từ bên ngoài.
-          </p>
-        </div>
-      </Reveal>
+      {/* Ô "Lưu ý biên tập" đã bỏ theo yêu cầu — cảnh này chỉ còn lưới quốc
+          gia và nút đi tiếp. Dữ kiện 1898 / 1946 vẫn được nêu đúng trong hồ
+          sơ từng nước ở trang `/dong-nam-a`. */}
 
       <Reveal variant="up" className="mt-12 flex justify-center" respectReducedMotion>
         <Button href="/dong-nam-a" variant="outline" size="lg">

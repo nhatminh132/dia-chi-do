@@ -692,11 +692,18 @@ export function Hero() {
 
             Nhãn chữ "Cuộn để đi tiếp" đổi sang `ScrollSpeedHint`: khi con lăn
             quay nhanh hơn trần tốc độ cho phép, chính chỗ này nói "Từ từ
-            thôi" — người xem hiểu vì sao trang đi chậm. */}
+            thôi" — người xem hiểu vì sao trang đi chậm.
+
+            ── Ẩn hẳn trên bản cầm tay ────────────────────────────────────────
+            Đây là chỉ dẫn cho CON LĂN. Trên điện thoại không có con lăn, câu
+            "Cuộn để đi tiếp" chỉ chiếm chỗ và tạo cảm giác trang đang chờ một
+            thao tác không tồn tại. `hidden md:block` + `pointer-coarse:hidden`
+            giữ nguyên phần tử cho máy tính (và cho SEO/đọc màn hình), chỉ
+            không vẽ ra trên màn hình cảm ứng. */}
         <div
           data-hero-intro
           data-hero-scroll-cue
-          className="absolute bottom-[4.75rem] left-1/2 flex -translate-x-1/2 items-center gap-3 sm:bottom-[5.25rem]"
+          className="pointer-coarse:hidden absolute bottom-[4.75rem] left-1/2 hidden -translate-x-1/2 items-center gap-3 sm:bottom-[5.25rem] md:flex"
         >
           <span aria-hidden className="block h-8 w-6 text-paper-faint">
             <svg viewBox="0 0 24 32" fill="none" className="h-full w-full">

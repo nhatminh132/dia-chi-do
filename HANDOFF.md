@@ -197,6 +197,71 @@ Kiểm chứng: cửa sổ 390×844 cảm ứng ⇒ `[data-autoscroll-ui]` **kh�
 > ảnh `.tmp/walk-02.png`). Muốn sửa thì phải làm ở `Heading`/`--text-h1`, cần đo lại toàn bộ
 > tiêu đề chương.
 
+## Dọn bản mobile + hai dòng ghi chú biên tập
+
+Năm yêu cầu của chủ dự án, làm cùng một lượt.
+
+### 1. Ẩn "Cuộn để đi tiếp" trên máy cầm tay
+
+`Hero.tsx`: khối `[data-hero-scroll-cue]` (biểu tượng chuột + `ScrollSpeedHint`) đổi
+`flex` → `hidden md:flex pointer-coarse:hidden`. Đây là chỉ dẫn cho **con lăn**; trên màn
+cảm ứng nó chỉ chiếm chỗ và mời một thao tác không tồn tại. Ẩn bằng CSS chứ không bằng
+`useIsMobile()` để HTML máy chủ và bản hydrate giống nhau; phần tử vẫn còn trong DOM cho
+trình đọc màn hình. Không đụng timeline GSAP, thứ tự chữ hay logic cuộn.
+
+### 2. Tắt hẳn trình phát nhạc trên máy cầm tay
+
+`CapsulePlayer.tsx`: `CapsulePlayer` (cổng) → `CapsulePlayerInner` (toàn bộ phần cũ).
+Cổng hỏi **hai** cờ: `useHydrated()` và `useIsHandheld()`; thiếu `useHydrated()` thì lần
+render đầu (server snapshot của `useSyncExternalStore` luôn là `false`) vẫn kịp tạo thẻ
+`<audio>` rồi mới bị gỡ. Nay trên điện thoại **không có** `<audio>`, không tải tệp nhạc,
+không chiếm vùng chạm đáy màn hình. Desktop không đổi (sau hydrate mới mount — capsule là
+`fixed` nên không gây nhảy bố cục).
+
+### 3. Bỏ ô "Lưu ý biên tập" ở Part 04
+
+`SoutheastAsiaSection.tsx`: bỏ nguyên khối `Reveal` chứa ô ghi chú 1898/1946. Dữ kiện vẫn
+nằm đúng trong hồ sơ từng nước (`/dong-nam-a`) và trong mốc của thẻ Philippines ở chính
+cảnh này (thấy trong `.tmp/vc-m-part4.png`).
+
+### 4. Danh sách thành viên thành danh sách dọc
+
+- `EndCredits.tsx`: `CREDITS` đổi kiểu từ `{ label, value }` sang `{ label, value?, list? }`;
+  hàng "Thành viên" truyền `TEAM.members` và render `<ul>` — mỗi người một dòng, gạch ngang
+  nhỏ thay dấu "·". Trước đây bảy cái tên nối bằng "·" tự ngắt dòng giữa tên trên điện thoại.
+- `gioi-thieu/page.tsx`: cùng cách — `TEAM_INFO` nhận `list`, khối "Thông tin nhóm" render
+  danh sách dọc thay vì `join(", ")`.
+
+### 5. Bỏ hai dòng "nội dung cần được kiểm chứng trước khi xuất bản"
+
+- `layout/Footer.tsx`: bỏ đoạn `SITE.disclaimer` ở đáy chân trang; chỉ còn
+  `© 2026 ĐỊA CHỈ ĐỎ — Dự án học tập`.
+- `home/EndCredits.tsx`: bỏ dòng "Dự án học tập · Nội dung cần được kiểm chứng trước khi
+  xuất bản" ở cuối credit.
+- `lib/navigation.ts`: bỏ hẳn trường `SITE.disclaimer` (không còn nơi render; giữ lại chỉ
+  tạo một chuỗi chết). Ghi chú lý do nằm ngay tại chỗ khai báo `SITE` và trong `Footer.tsx`.
+
+### Đo lại
+
+`next start -p 3102`, Chromium 1248 (`Pixel 7` 412×915 cho mobile, 1440×900 cho desktop):
+
+| Kiểm tra | Mobile | Desktop |
+|---|---|---|
+| `[data-hero-scroll-cue]` hiện | không | có ("CUỘN ĐỂ ĐI TIẾP") |
+| `<audio>` trong DOM | **0** | 1 |
+| nút "Mở trình phát nhạc" | 0 | 1 |
+| chữ "Nhạc nền" trong body | không có | có |
+| "Lưu ý biên tập" ở `#chapter-06` | không có | không có |
+| "1898" ở `#chapter-06` | có | có |
+| credit: tên nối bằng "·" | không (danh sách dọc) | không |
+| footer còn câu "kiểm chứng" | không | không |
+
+Ảnh đo: `.tmp/vc-m-hero.png`, `.tmp/vc-m-part4.png`, `.tmp/vc-m-credits.png`,
+`.tmp/vc-m-footer.png`, `.tmp/vc-m-about.png`, `.tmp/vc-d-hero.png`
+(script: `.tmp/verify-mobile-cleanup.mjs`).
+
+`npx tsc --noEmit`, `npx eslint src` sạch; `npm run build` pass (23 route).
+
 ## Giới hạn tốc độ cuộn + thanh neo chương
 
 1. **Trần tốc độ bánh xe nay có tác dụng thật.** `ScrollProvider` khai
